@@ -3,28 +3,28 @@
   <category name="Utilities">
     <reapack name="FSR LoopX.lua" type="script" desc="FSR LoopX.lua">
       <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
-        <source main="main" file="FSR-Scripts/FSR LoopX.lua">https://github.com/forsemusic1996-cyber/FSR-Lua-Scripts/raw/refs/heads/main/FSR-Scripts/FSR%20LoopX.lua</source>
+        <source main="main" file="FSR-Scripts/FSR LoopX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20LoopX.lua</source>
         <changelog><![CDATA[Initial release]]></changelog>
       </version>
     </reapack>
 
     <reapack name="FSR FlipX.lua" type="script" desc="FSR FlipX.lua">
       <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
-        <source main="main" file="FSR-Scripts/FSR FlipX.lua">https://github.com/forsemusic1996-cyber/FSR-Lua-Scripts/raw/refs/heads/main/FSR-Scripts/FSR%20FlipX.lua</source>
+        <source main="main" file="FSR-Scripts/FSR FlipX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20FlipX.lua</source>
         <changelog><![CDATA[Initial release]]></changelog>
       </version>
     </reapack>
 
     <reapack name="FSR BPM Menu.lua" type="script" desc="FSR BPM Menu.lua">
       <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
-        <source main="main" file="FSR-Scripts/FSR BPM Menu.lua">https://github.com/forsemusic1996-cyber/FSR-Lua-Scripts/raw/refs/heads/main/FSR-Scripts/FSR%20BPM%20Menu.lua</source>
+        <source main="main" file="FSR-Scripts/FSR BPM Menu.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20BPM%20Menu.lua</source>
         <changelog><![CDATA[Initial release]]></changelog>
       </version>
     </reapack>
 
     <reapack name="FSR Key Transposer.lua" type="script" desc="FSR Key Transposer.lua">
       <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
-        <source main="main" file="FSR-Scripts/FSR Key Transposer.lua">https://github.com/forsemusic1996-cyber/FSR-Lua-Scripts/raw/refs/heads/main/FSR-Scripts/FSR%20Key%20Transposer.lua</source>
+        <source main="main" file="FSR-Scripts/FSR Key Transposer.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20Key%20Transposer.lua</source>
         <changelog><![CDATA[Initial release]]></changelog>
       </version>
     </reapack>
