@@ -3,16 +3,37 @@
   <category name="Utilities">
 
     <reapack name="FSR LoopX.lua" type="script" desc="FSR LoopX.lua">
-      <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23">
+      <metadata>
+        <description><![CDATA[{\rtf1\ansi\deff0
+{\pard\ql FSR LoopX script for REAPER.\par}
+}]]></description>
+      </metadata>
+      <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
+        <changelog><![CDATA[Initial release]]></changelog>
         <source main="main">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/refs/heads/main/FSR%20LoopX.lua</source>
       </version>
     </reapack>
 
     <reapack name="FSR FlipX.lua" type="script" desc="FSR FlipX.lua">
-      <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23">
+      <metadata>
+        <description><![CDATA[{\rtf1\ansi\deff0
+{\pard\ql FSR FlipX script for REAPER.\par}
+}]]></description>
+      </metadata>
+      <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
+        <changelog><![CDATA[Initial release]]></changelog>
         <source main="main">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/refs/heads/main/FSR%20FlipX.lua</source>
       </version>
     </reapack>
 
   </category>
+
+  <metadata>
+    <description><![CDATA[{\rtf1\ansi\deff0
+{\pard\ql\b FSR Scripts for REAPER\b0\par}
+{\pard\ql Please support me if you find my scripts useful!\par}
+{\pard\ql {\field{\*\fldinst{HYPERLINK "https://ko-fi.com/pianohousestudio/shop"}}{\fldrslt{\ul https://ko-fi.com/pianohousestudio/shop}}}\par}
+}]]></description>
+    <link rel="donation">https://ko-fi.com/pianohousestudio/shop</link>
+  </metadata>
 </index>
