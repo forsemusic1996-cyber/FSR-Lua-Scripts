@@ -6,7 +6,7 @@
   <category name="Tools">
     <reapack name="FSR FlipX.lua" type="script" desc="FSR FlipX.lua">
      <version name="1.0" author="Andrew" time="23-08-2026">
-        <source main="main">paste raw link here</source>
+        <source main="main">https://github.com/forsemusic1996-cyber/FSR-Lua-Scripts/raw/refs/heads/main/index.xml</source>
       </version>
     </reapack>
   </category>
