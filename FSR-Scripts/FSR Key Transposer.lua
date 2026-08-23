@@ -1,8 +1,17 @@
 --[[
-* Author:      Andrew Dihtaryk(FSR)   
+-------------------------------------------------------------------------------------------
+*              FSR Key Transposer
+* Section      Main
+* Author:      Andrew Dihtaryk(FSR)
 * Version:     1.00
-* DONATION:    http://ko-fi.com/pianohousestudio/shop 
-- @description Transposes selected audio items by semitone intervals using a note-based menu
+-------------------------------------------------------------------------------------------               
+* DONATION:    http://ko-fi.com/pianohousestudio    ««««« Double-click the link to open it.
+               http://www.paypal.com/paypalme/AndriiDrots Double-click the link to open it.
+               
+* Bug Reports: If you find any errors, please report one of the link below                  
+* Website:     http://forum.cockos.com/showthread.php?t=309129
+    
+----------------------------------------------------------------
 
 First, select the note/key in which the sample is currently playing. 
 You can find it in the loop’s name or determine it yourself.
@@ -23,7 +32,7 @@ Then choose the target note/key from the submenu to transpose the sample.
 │                      │   │   A#                 │   │   A#      (-2 st)    │
 │                      │   │   B                  │   │   B       (-1 st)    │
 └──────────────────────┘   └──────────────────────┘   └──────────────────────┘
---]]
+--]] 
 
 if not reaper.APIExists("JS_Window_Find") then
     reaper.ShowMessageBox("Потрібен js_ReaScriptAPI!", "Помилка", 0)
