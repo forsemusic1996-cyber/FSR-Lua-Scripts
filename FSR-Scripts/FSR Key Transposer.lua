@@ -1,3 +1,30 @@
+--[[
+* Author:      Andrew Dihtaryk(FSR)   
+* Version:     1.00
+* DONATION:    http://ko-fi.com/pianohousestudio/shop 
+- @description Transposes selected audio items by semitone intervals using a note-based menu
+
+First, select the note/key in which the sample is currently playing. 
+You can find it in the loop’s name or determine it yourself.
+Then choose the target note/key from the submenu to transpose the sample.
+┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
+│ ▶ ♪ Piano_Loop.wav   │   │ SELECT SOURCE KEY    │   │ MATCH C TO:D         │
+│   Current key: C     │ → │──────────────────────│ → │──────────────────────│
+│                      │   │ ▶ C                  │   │   C       (+0 st)    │
+│                      │   │   C#                 │   │   C#      (+1 st)    │
+│                      │   │   D                  │   │ ▶ D       (+2 st)    │
+│                      │   │   D#                 │   │   D#      (+3 st)    │
+│                      │   │   E                  │   │   E       (+4 st)    │
+│                      │   │   F                  │   │   F       (+5 st)    │
+│                      │   │   F#                 │   │   F#      (+6 st)    │
+│                      │   │   G                  │   │   G       (-5 st)    │
+│                      │   │   G#                 │   │   G#      (-4 st)    │
+│                      │   │   A                  │   │   A       (-3 st)    │
+│                      │   │   A#                 │   │   A#      (-2 st)    │
+│                      │   │   B                  │   │   B       (-1 st)    │
+└──────────────────────┘   └──────────────────────┘   └──────────────────────┘
+--]]
+
 if not reaper.APIExists("JS_Window_Find") then
     reaper.ShowMessageBox("Потрібен js_ReaScriptAPI!", "Помилка", 0)
     return
