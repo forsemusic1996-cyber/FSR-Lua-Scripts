@@ -1,41 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <index version="1" name="FSR Scripts">
   <category name="Utilities">
-
     <reapack name="FSR LoopX.lua" type="script" desc="FSR LoopX.lua">
       <metadata>
-        <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
-\widowctrl\hyphauto
+        <description><![CDATA[{\rtf1\ansi\deff0
 {\pard \ql \f0 \sa180 \li0 \fi0 FSR LoopX script for REAPER.\par}
 }]]></description>
       </metadata>
       <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
         <changelog><![CDATA[Initial release]]></changelog>
-        <source main="main">https://github.com/forsemusic1996-cyber/FSR-Lua-Scripts/raw/refs/heads/main/FSR-Scripts/FSR%20LoopX.lua</source>
+        <source main="main">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20LoopX.lua</source>
       </version>
     </reapack>
 
     <reapack name="FSR FlipX.lua" type="script" desc="FSR FlipX.lua">
       <metadata>
-        <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
-\widowctrl\hyphauto
+        <description><![CDATA[{\rtf1\ansi\deff0
 {\pard \ql \f0 \sa180 \li0 \fi0 FSR FlipX script for REAPER.\par}
 }]]></description>
       </metadata>
       <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
         <changelog><![CDATA[Initial release]]></changelog>
-        <source main="main">https://github.com/forsemusic1996-cyber/FSR-Lua-Scripts/raw/refs/heads/main/FSR-Scripts/FSR%20FlipX.lua</source>
+        <source main="main">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20FlipX.lua</source>
       </version>
     </reapack>
-
   </category>
 
   <metadata>
-    <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
-\widowctrl\hyphauto
-{\pard \ql \f0 \sa180 \li0 \fi0 FSR Scripts for REAPER\par}
+    <description><![CDATA[{\rtf1\ansi\deff0
+{\pard \ql \f0 \sa180 \li0 \fi0 FSR Scripts for REAPER.\par}
 {\pard \ql \f0 \sa180 \li0 \fi0 \b \fs32 Please support me if you find my work useful!\b0\par}
-{\pard \ql \f0 \sa180 \li0 \fi0 {\field{\*\fldinst{HYPERLINK "https://ko-fi.com/pianohousestudio/shop"}}{\fldrslt{\ul https://ko-fi.com/pianohousestudio/shop}}}\par}
 }]]></description>
     <link rel="donation">https://ko-fi.com/pianohousestudio/shop</link>
   </metadata>
