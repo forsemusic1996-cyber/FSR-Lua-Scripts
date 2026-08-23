@@ -1,5 +1,8 @@
--- Match selected items to project tempo
--- Menu: "Manual BPM" + "Range" on top, BPM list below. Default range 100-135 (saved via ExtState).
+--[[
+* Author:      Andrew Dihtaryk(FSR)   
+* Version:     1.00
+* DONATION:    http://ko-fi.com/pianohousestudio/shop 
+--]]
 local RESET_BEFORE_APPLY = true
 local DEFAULT_MIN, DEFAULT_MAX = 100, 135
 local proj = 0
