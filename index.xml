@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1.0" name="FSR Scripts">
+<index version="1" name="FSR Scripts">
   <category name="Utilities">
+
     <reapack name="FSR LoopX.lua" type="script" desc="FSR LoopX.lua">
       <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
         <source main="main" file="FSR LoopX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20LoopX.lua</source>
@@ -28,14 +29,23 @@
         <changelog><![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]></changelog>
       </version>
     </reapack>
+
   </category>
+
   <metadata>
-    <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
-\widowctrl\hyphauto
-{\pard \ql \f0 \fs24 \sa180 \li0 \fi0 FSR Scripts for REAPER.\par}
-{\pard \ql \f0 \fs32 \sa180 \li0 \fi0 \b Please support me if you find my work useful!\b0\par}
-{\pard \ql \f0 \fs24 \sa180 \li0 \fi0 {\field{\*\fldinst{HYPERLINK "https://ko-fi.com/pianohousestudio/shop"}}{\fldrslt{\ul https://ko-fi.com/pianohousestudio/shop}}}\par}
+    <description><![CDATA[{\rtf1\ansi\deff0
+{\fonttbl{\f0 Calibri;}}
+{\colortbl;\red0\green0\blue255;}
+\viewkind4\uc1
+\pard\sa240\f0\fs36\b FSR Scripts for REAPER\b0\par
+\pard\sa180\fs24\b Please support me if you find my work useful!\b0\par
+\pard\sa100\fs24 1. \cf1\ul {\field{\*\fldinst HYPERLINK "https://ko-fi.com/pianohousestudio/shop"}{\fldrslt https://ko-fi.com/pianohousestudio/shop}}\cf0\ulnone\par
+\pard\sa100\fs24 2. \cf1\ul {\field{\*\fldinst HYPERLINK "https://www.paypal.com/paypalme/AndriiDrots"}{\fldrslt https://www.paypal.com/paypalme/AndriiDrots}}\cf0\ulnone\par
 }]]></description>
+
+    <link rel="website" href="https://github.com/forsemusic1996-cyber/FSR-Lua-Scripts">GitHub Repository</link>
+    <link rel="website" href="https://forum.cockos.com/showthread.php?t=310636">Bug Reports</link>
     <link rel="donation">https://ko-fi.com/pianohousestudio/shop</link>
+    <link rel="donation">https://www.paypal.com/paypalme/AndriiDrots</link>
   </metadata>
 </index>
