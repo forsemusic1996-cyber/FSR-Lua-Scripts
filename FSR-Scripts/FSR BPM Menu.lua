@@ -1,7 +1,28 @@
 --[[
-* Author:      Andrew Dihtaryk(FSR)   
+-------------------------------------------------------------------------------------------
+*              FSR BPM MENU
+* Section      Main
+* Author:      Andrew Dihtaryk(FSR)
 * Version:     1.00
-* DONATION:    http://ko-fi.com/pianohousestudio/shop 
+-------------------------------------------------------------------------------------------               
+* DONATION:    http://ko-fi.com/pianohousestudio    ««««« Double-click the link to open it.
+               http://www.paypal.com/paypalme/AndriiDrots Double-click the link to open it.
+               
+* Bug Reports: If you find any errors, please report one of the link below                  
+* Website:     http://forum.cockos.com/showthread.php?t=310636
+    
+----------------------------------------------------------------
+║                                                              ║
+║                         HOW TO USE                           ║
+║                                                              ║
+║ ① Select one or more audio items.                            ║
+║ ② Double-click the script to run it.                         ║
+║ ③ Enter the original BPM or choose it from the menu.         ║
+║ ④ The selected items will match the REAPER master tempo.     ║
+║                                                              ║
+║ SELECT ITEMS → RUN SCRIPT → ENTER BPM → MATCH MASTER TEMPO   ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
 --]]
 local RESET_BEFORE_APPLY = true
 local DEFAULT_MIN, DEFAULT_MAX = 100, 135
