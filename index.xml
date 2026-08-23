@@ -1,1 +1,14 @@
 
+<?xml version="1.0" encoding="utf-8"?>
+<index version="1.0" name="FSR Scripts">
+
+  <!-- Scripts -->
+  <category name="Tools">
+    <reapack name="FSR FlipX.lua" type="script" desc="FSR FlipX.lua">
+     <version name="1.0" author="Andrew" time="23-08-2026">
+        <source main="main">paste raw link here</source>
+      </version>
+    </reapack>
+  </category>
+
+ 
