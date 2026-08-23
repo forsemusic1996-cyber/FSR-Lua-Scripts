@@ -1,3 +1,19 @@
+--[[
+-------------------------------------------------------------------------------------------
+*              FSR FlipX
+* Section      Main
+* Author:      Andrew Dihtaryk(FSR)
+* Version:     1.00
+-------------------------------------------------------------------------------------------               
+* DONATION:    http://ko-fi.com/pianohousestudio    ««««« Double-click the link to open it.
+               http://www.paypal.com/paypalme/AndriiDrots Double-click the link to open it.
+               
+* Bug Reports: If you find any errors, please report one of the link below                  
+* Website:     http://forum.cockos.com/showthread.php?t=310636
+
+
+-------------------------------------------------------------------------------------------
+--]]  
 if not reaper.ImGui_CreateContext then
   reaper.MB("ReaImGui extension required.\nInstall via ReaPack.", "Error", 0)
   return
