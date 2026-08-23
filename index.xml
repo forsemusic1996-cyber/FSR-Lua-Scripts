@@ -30,10 +30,11 @@
     </reapack>
   </category>
   <metadata>
-    <description><![CDATA[{\rtf1\ansi\deff0
-{\pard \ql \f0 \sa180 \li0 \fi0 FSR Scripts for REAPER.\par}
-{\pard \ql \f0 \sa180 \li0 \fi0 \b \fs32 Please support me if you find my work useful!\b0\par}
-{\pard \ql \f0 \sa180 \li0 \fi0 Donation: https://ko-fi.com/pianohousestudio/shop\par}
+    <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 Courier;}}
+\widowctrl\hyphauto
+{\pard \ql \f0 \fs24 \sa180 \li0 \fi0 FSR Scripts for REAPER.\par}
+{\pard \ql \f0 \fs32 \sa180 \li0 \fi0 \b Please support me if you find my work useful!\b0\par}
+{\pard \ql \f0 \fs24 \sa180 \li0 \fi0 {\field{\*\fldinst{HYPERLINK "https://ko-fi.com/pianohousestudio/shop"}}{\fldrslt{\ul https://ko-fi.com/pianohousestudio/shop}}}\par}
 }]]></description>
     <link rel="donation">https://ko-fi.com/pianohousestudio/shop</link>
   </metadata>
