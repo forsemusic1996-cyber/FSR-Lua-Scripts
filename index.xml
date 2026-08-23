@@ -1,14 +1,11 @@
 
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1.0" name="FSR Scripts">
-
-  <!-- Scripts -->
-  <category name="Tools">
+<index version="1" name="FSR Scripts">
+  <category name="Utilities">
     <reapack name="FSR FlipX.lua" type="script" desc="FSR FlipX.lua">
-     <version name="1.0" author="Andrew" time="23-08-2026">
-        <source main="main">https://github.com/forsemusic1996-cyber/FSR-Lua-Scripts/raw/refs/heads/main/index.xml</source>
+      <version name="1.0" author="Andrew" time="2026-08-23">
+        <source main="main">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/refs/heads/main/FSR-FlipX.lua</source>
       </version>
     </reapack>
   </category>
-
- 
+</index>
