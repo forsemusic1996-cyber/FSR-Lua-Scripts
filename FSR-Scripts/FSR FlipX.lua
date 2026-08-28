@@ -1279,7 +1279,7 @@ function settings_ui.draw(ctx, settings_obj)
   local style_var_count = 5
 
   local flags = reaper.ImGui_WindowFlags_NoCollapse()
-  local visible, open = reaper.ImGui_Begin(ctx, "FSR SlipX - Colors & Themes", true, flags)
+  local visible, open = reaper.ImGui_Begin(ctx, "FSR FlipX - Colors & Themes", true, flags)
 
   if not open then
     settings_ui.close(settings_obj)
@@ -2903,7 +2903,7 @@ local function loop()
   applyTheme()
 
   local visible
-  visible, open = reaper.ImGui_Begin(ctx, "FSR SlipX", true, flags)
+  visible, open = reaper.ImGui_Begin(ctx, "FSR FlipX", true, flags)
 
   if visible then
     if not window_locked then
@@ -3528,4 +3528,3 @@ local function loop()
 end
 
 reaper.defer(loop)
-
