@@ -1,53 +1,60 @@
-<?xml version="1.0" encoding="utf-8"?>
-<index version="1" name="FSR Scripts">
-  <category name="Utilities">
+\<?xml version="1.0" encoding="utf-8"?>
+\<index version="1" name="FSR Scripts">
+&#x20; \<category name="Utilities">
 
-    <reapack name="FSR LoopX.lua" type="script" desc="FSR LoopX.lua">
-      <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
-        <source main="main" file="FSR LoopX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20LoopX.lua</source>
-        <changelog><![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]></changelog>
-      </version>
-    </reapack>
+&#x20;   \<reapack name="FSR LoopX.lua" type="script" desc="FSR LoopX.lua">
+&#x20;     \<version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
+&#x20;       \<source main="main" file="FSR LoopX.lua">[https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20LoopX.lua](https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20LoopX.lua)\</source>
+&#x20;       \<changelog>\<![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]>\</changelog>
+&#x20;     \</version>
+&#x20;   \</reapack>
 
-    <reapack name="FSR FlipX.lua" type="script" desc="FSR FlipX.lua">
-      <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
-        <source main="main" file="FSR FlipX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20FlipX.lua</source>
-        <changelog><![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]></changelog>
-      </version>
-    </reapack>
+&#x20;   \<reapack name="FSR FlipX.lua" type="script" desc="FSR FlipX.lua">
+&#x20;     \<version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
+&#x20;       \<source main="main" file="FSR FlipX.lua">[https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20FlipX.lua](https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20FlipX.lua)\</source>
+&#x20;       \<changelog>\<![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]>\</changelog>
+&#x20;     \</version>
+&#x20;   \</reapack>
 
-    <reapack name="FSR BPM Menu.lua" type="script" desc="FSR BPM Menu.lua">
-      <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
-        <source main="main" file="FSR BPM Menu.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20BPM%20Menu.lua</source>
-        <changelog><![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]></changelog>
-      </version>
-    </reapack>
+&#x20;   \<reapack name="FSR BPM Menu.lua" type="script" desc="FSR BPM Menu.lua">
+&#x20;     \<version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
+&#x20;       \<source main="main" file="FSR BPM Menu.lua">[https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20BPM%20Menu.lua](https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20BPM%20Menu.lua)\</source>
+&#x20;       \<changelog>\<![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]>\</changelog>
+&#x20;     \</version>
+&#x20;   \</reapack>
 
-    <reapack name="FSR Key Transposer.lua" type="script" desc="FSR Key Transposer.lua">
-      <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
-        <source main="main" file="FSR Key Transposer.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20Key%20Transposer.lua</source>
-        <changelog><![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]></changelog>
-      </version>
-    </reapack>
+&#x20;   \<reapack name="FSR Key Transposer.lua" type="script" desc="FSR Key Transposer.lua">
+&#x20;     \<version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
+&#x20;       \<source main="main" file="FSR Key Transposer.lua">[https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20Key%20Transposer.lua](https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20Key%20Transposer.lua)\</source>
+&#x20;       \<changelog>\<![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]>\</changelog>
+&#x20;     \</version>
+&#x20;   \</reapack>
 
-  </category>
+&#x20;   \<reapack name="FSR Metronome Volume.lua" type="script" desc="FSR Metronome Volume.lua">
+&#x20;     \<version name="1.0" author="Andrew Dihtaryk" time="2026-08-29T00:00:00Z">
+&#x20;       \<source main="main" file="FSR Metronome Volume.lua">[https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20Metronome%20Volume.lua](https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20Metronome%20Volume.lua)\</source>
+&#x20;       \<changelog>\<![CDATA[Initial release.]]>\</changelog>
+&#x20;     \</version>
+&#x20;   \</reapack>
 
-  <metadata>
-    <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}
+&#x20; \</category>
+
+&#x20; \<metadata>
+&#x20;   \<description>\<![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}
 {\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
 \widowctrl\hyphauto
 
 {\pard \ql \f0 \sa180 \li0 \fi0 \outlinelevel0 \b \fs36 FSR Scripts for REAPER\par}
 {\pard \ql \f0 \sa180 \li0 \fi0 Please support me if you find my work useful!\par}
-{\pard \ql \f0 \sa180 \li0 \fi0 1. {\field{\*\fldinst{HYPERLINK "https://ko-fi.com/pianohousestudio/shop"}}{\fldrslt{\ul
-https://ko-fi.com/pianohousestudio/shop
+{\pard \ql \f0 \sa180 \li0 \fi0 1. {\field{\\\*\fldinst{HYPERLINK "[https://ko-fi.com/pianohousestudio/shop](https://ko-fi.com/pianohousestudio/shop)"}}{\fldrslt{\ul
+[https://ko-fi.com/pianohousestudio/shop](https://ko-fi.com/pianohousestudio/shop)
 }}}\par}
-{\pard \ql \f0 \sa180 \li0 \fi0 2. {\field{\*\fldinst{HYPERLINK "https://www.paypal.com/paypalme/AndriiDrots"}}{\fldrslt{\ul
-https://www.paypal.com/paypalme/AndriiDrots
+{\pard \ql \f0 \sa180 \li0 \fi0 2. {\field{\\\*\fldinst{HYPERLINK "[https://www.paypal.com/paypalme/AndriiDrots](https://www.paypal.com/paypalme/AndriiDrots)"}}{\fldrslt{\ul
+[https://www.paypal.com/paypalme/AndriiDrots](https://www.paypal.com/paypalme/AndriiDrots)
 }}}\par}
-}]]></description>
+}]]>\</description>
 
-    <link rel="donation">https://ko-fi.com/pianohousestudio/shop</link>
-    <link rel="donation">https://www.paypal.com/paypalme/AndriiDrots</link>
-  </metadata>
-</index>
+&#x20;   \<link rel="donation">[https://ko-fi.com/pianohousestudio/shop](https://ko-fi.com/pianohousestudio/shop)\</link>
+&#x20;   \<link rel="donation">[https://www.paypal.com/paypalme/AndriiDrots](https://www.paypal.com/paypalme/AndriiDrots)\</link>
+&#x20; \</metadata>
+\</index>
