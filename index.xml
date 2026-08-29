@@ -30,6 +30,13 @@
       </version>
     </reapack>
 
+    <reapack name="FSR Metronome Volume.lua" type="script" desc="FSR Metronome Volume.lua">
+      <version name="1.0" author="Andrew Dihtaryk" time="2026-08-29T00:00:00Z">
+        <source main="main" file="FSR Metronome Volume.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20Metronome%20Volume.lua</source>
+        <changelog><![CDATA[Initial release.]]></changelog>
+      </version>
+    </reapack>
+
   </category>
 
   <metadata>
@@ -39,10 +46,10 @@
 
 {\pard \ql \f0 \sa180 \li0 \fi0 \outlinelevel0 \b \fs36 FSR Scripts for REAPER\par}
 {\pard \ql \f0 \sa180 \li0 \fi0 Please support me if you find my work useful!\par}
-{\pard \ql \f0 \sa180 \li0 \fi0 1. {\field{\*\fldinst{HYPERLINK "https://ko-fi.com/pianohousestudio/shop"}}{\fldrslt{\ul
+{\pard \ql \f0 \sa180 \li0 \fi0 1. {\field{\\*\fldinst{HYPERLINK "https://ko-fi.com/pianohousestudio/shop"}}{\fldrslt{\ul
 https://ko-fi.com/pianohousestudio/shop
 }}}\par}
-{\pard \ql \f0 \sa180 \li0 \fi0 2. {\field{\*\fldinst{HYPERLINK "https://www.paypal.com/paypalme/AndriiDrots"}}{\fldrslt{\ul
+{\pard \ql \f0 \sa180 \li0 \fi0 2. {\field{\\*\fldinst{HYPERLINK "https://www.paypal.com/paypalme/AndriiDrots"}}{\fldrslt{\ul
 https://www.paypal.com/paypalme/AndriiDrots
 }}}\par}
 }]]></description>
