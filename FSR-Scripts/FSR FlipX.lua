@@ -2759,7 +2759,7 @@ local function draw_settings_popup()
     end
 
     reaper.ImGui_Separator(ctx)
-    reaper.ImGui_TextColored(ctx, C.MARKER, "\xE2\x9C\xA6 Made by Andrew Dihtaryk")
+    reaper.ImGui_TextColored(ctx, C.MARKER, "\xE2\x9C\xA6 Made by Andrew Dihtiaruk")
     if reaper.ImGui_MenuItem(ctx, "\xE2\x9C\xA6 Support Ko-Fi") then
       reaper.CF_ShellExecute("https://ko-fi.com/pianohousestudio/shop")
     end
