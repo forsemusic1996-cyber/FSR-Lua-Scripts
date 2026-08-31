@@ -2,7 +2,7 @@
 -------------------------------------------------------------------------------------------
 *              FSR LoopX
 * Section      Main
-* Author:      Andrew Dihtaryk(FSR)
+* Author:      Andrew Dihtiaruk (FSR)
 * Version:     1.00
 -------------------------------------------------------------------------------------------               
 * DONATION:    http://ko-fi.com/pianohousestudio    ««««« Double-click the link to open it.
