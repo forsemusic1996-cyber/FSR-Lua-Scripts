@@ -2724,7 +2724,7 @@ local function loop()
         reaper.ImGui_EndMenu(ctx)
       end
       reaper.ImGui_Separator(ctx)
-      reaper.ImGui_TextColored(ctx, theme.ActivePreset or 0x00AAFFFF, "\xE2\x9C\xA6 Made by Andrew Dihtaryk")
+      reaper.ImGui_TextColored(ctx, theme.ActivePreset or 0x00AAFFFF, "\xE2\x9C\xA6 Made by Andrew Dihtiaruk")
       if reaper.ImGui_MenuItem(ctx, "\xE2\x9C\xA6 Support Ko-Fi") then
         reaper.CF_ShellExecute("https://ko-fi.com/pianohousestudio/shop")
       end
@@ -3361,4 +3361,3 @@ local function loop()
 end
 
 reaper.defer(loop)
-
