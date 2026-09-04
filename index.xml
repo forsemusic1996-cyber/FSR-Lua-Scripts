@@ -17,28 +17,28 @@
     </reapack>
 
     <reapack name="FSR BPM Menu.lua" type="script" desc="FSR BPM Menu.lua">
-      <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
+      <version name="1.0" author="Andrew Dihtiaruk " time="2026-08-23T00:00:00Z">
         <source main="main" file="FSR BPM Menu.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20BPM%20Menu.lua</source>
         <changelog><![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]></changelog>
       </version>
     </reapack>
 
     <reapack name="FSR Key Transposer.lua" type="script" desc="FSR Key Transposer.lua">
-      <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
+      <version name="1.0" author="Andrew Dihtiaruk " time="2026-08-23T00:00:00Z">
         <source main="main" file="FSR Key Transposer.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20Key%20Transposer.lua</source>
         <changelog><![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]></changelog>
       </version>
     </reapack>
 
     <reapack name="FSR Metronome Volume.lua" type="script" desc="FSR Metronome Volume.lua">
-      <version name="1.0" author="Andrew Dihtaryk" time="2026-08-29T00:00:00Z">
+      <version name="1.0" author="Andrew Dihtiaruk " time="2026-08-29T00:00:00Z">
         <source main="main" file="FSR Metronome Volume.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20Metronome%20Volume.lua</source>
         <changelog><![CDATA[Initial release.]]></changelog>
       </version>
     </reapack>
 
     <reapack name="FSR Region Templates.lua" type="script" desc="FSR Region Templates.lua">
-      <version name="1.0" author="Andrew Dihtaryk" time="2026-09-04T00:00:00Z">
+      <version name="1.0" author="Andrew Dihtiaruk k" time="2026-09-04T00:00:00Z">
         <source main="main" file="FSR Region Templates.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20Region%20Templates.lua</source>
         <changelog><![CDATA[Initial release.]]></changelog>
       </version>
