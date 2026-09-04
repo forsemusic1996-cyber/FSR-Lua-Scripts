@@ -38,7 +38,7 @@
     </reapack>
 
     <reapack name="FSR Region Templates.lua" type="script" desc="FSR Region Templates.lua">
-      <version name="1.0" author="Andrew Dihtiaruk k" time="2026-09-04T00:00:00Z">
+      <version name="1.0" author="Andrew Dihtiaruk" time="2026-09-04T00:00:00Z">
         <source main="main" file="FSR Region Templates.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20Region%20Templates.lua</source>
         <changelog><![CDATA[Initial release.]]></changelog>
       </version>
