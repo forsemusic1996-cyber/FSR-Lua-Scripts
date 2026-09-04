@@ -9,7 +9,7 @@
                http://www.paypal.com/paypalme/AndriiDrots Double-click the link to open it.
                
 * Bug Reports: If you find any errors, please report one of the link below                  
-* Website:    
+* Website:     http://forum.cockos.com/showthread.php?t=311001
     
 
 --]]
