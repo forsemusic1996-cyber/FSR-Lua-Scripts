@@ -1,34 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
 <index version="1" name="FSR Scripts">
   <category name="Utilities">
-
     <reapack name="FSR LoopX.lua" type="script" desc="FSR LoopX.lua">
       <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
         <source main="main" file="FSR LoopX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20LoopX.lua</source>
         <changelog><![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]></changelog>
       </version>
     </reapack>
-
     <reapack name="FSR FlipX.lua" type="script" desc="FSR FlipX.lua">
       <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
         <source main="main" file="FSR FlipX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20FlipX.lua</source>
         <changelog><![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]></changelog>
       </version>
     </reapack>
-
     <reapack name="FSR BPM Menu.lua" type="script" desc="FSR BPM Menu.lua">
       <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
         <source main="main" file="FSR BPM Menu.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20BPM%20Menu.lua</source>
         <changelog><![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]></changelog>
       </version>
     </reapack>
-
     <reapack name="FSR Key Transposer.lua" type="script" desc="FSR Key Transposer.lua">
       <version name="1.0" author="Andrew Dihtaryk" time="2026-08-23T00:00:00Z">
         <source main="main" file="FSR Key Transposer.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20Key%20Transposer.lua</source>
         <changelog><![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]></changelog>
       </version>
     </reapack>
-
     <reapack name="FSR Metronome Volume.lua" type="script" desc="FSR Metronome Volume.lua">
       <version name="1.0" author="Andrew Dihtaryk" time="2026-08-29T00:00:00Z">
         <source main="main" file="FSR Metronome Volume.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20Metronome%20Volume.lua</source>
@@ -36,19 +32,26 @@
       </version>
     </reapack>
 
+    <reapack name="FSR Region Templates.lua" type="script" desc="FSR Region Templates.lua">
+      <version name="1.0" author="Andrew Dihtaryk" time="2026-09-04T00:00:00Z">
+        <source main="main" file="FSR Region Templates.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20Region%20Templates.lua</source>
+        <changelog><![CDATA[Initial release.]]></changelog>
+      </version>
+    </reapack>
   </category>
-
   <metadata>
-    <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0\fswiss Helvetica;}{\f1\fmodern Courier;}}
+    <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}
 {\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
 \widowctrl\hyphauto
-
-{\pard\ql\f0\sa180\li0\fi0\outlinelevel0\b\fs36 FSR Scripts for REAPER\par}
-{\pard\ql\f0\sa180\li0\fi0 Please support me if you find my work useful!\par}
-{\pard\ql\f0\sa180\li0\fi0 1. {\field{\*\fldinst{HYPERLINK "https://ko-fi.com/pianohousestudio/shop"}}{\fldrslt{\ul https://ko-fi.com/pianohousestudio/shop}}}\par}
-{\pard\ql\f0\sa180\li0\fi0 2. {\field{\*\fldinst{HYPERLINK "https://www.paypal.com/paypalme/AndriiDrots"}}{\fldrslt{\ul https://www.paypal.com/paypalme/AndriiDrots}}}\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 \outlinelevel0 \b \fs36 FSR Scripts for REAPER\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 Please support me if you find my work useful!\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 1. {\field{\\*\fldinst{HYPERLINK "https://ko-fi.com/pianohousestudio/shop"}}{\fldrslt{\ul
+https://ko-fi.com/pianohousestudio/shop
+}}}\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 2. {\field{\\*\fldinst{HYPERLINK "https://www.paypal.com/paypalme/AndriiDrots"}}{\fldrslt{\ul
+https://www.paypal.com/paypalme/AndriiDrots
+}}}\par}
 }]]></description>
-
     <link rel="donation">https://ko-fi.com/pianohousestudio/shop</link>
     <link rel="donation">https://www.paypal.com/paypalme/AndriiDrots</link>
   </metadata>
