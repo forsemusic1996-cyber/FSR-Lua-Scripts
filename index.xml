@@ -52,6 +52,12 @@
         <changelog><![CDATA[Initial release.]]></changelog>
       </version>
     </reapack>
+    <reapack name="FSR Pink Noise Generator .lua" type="script" desc="FSR Pink Noise Generator .lua">
+      <version name="1.0" author="Andrew Dihtiaruk" time="2026-09-09T00:00:00Z">
+        <source main="main" file="FSR Pink Noise Generator .lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/refs/heads/main/FSR-Scripts/FSR%20Pink%20Noise%20Generator%20.lua</source>
+        <changelog><![CDATA[Initial release.]]></changelog>
+      </version>
+    </reapack>
   </category>
   <metadata>
     <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}
