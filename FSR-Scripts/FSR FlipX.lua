@@ -3,7 +3,7 @@
 *              FSR FlipX
 * Section      Main
 * Author:      Andrew Dihtiaruk(FSR)
-* Version:     1.00
+* Version:     1.01
 -------------------------------------------------------------------------------------------               
 * DONATION:    http://ko-fi.com/pianohousestudio    ««««« Double-click the link to open it.
                http://www.paypal.com/paypalme/AndriiDrots Double-click the link to open it.
@@ -21,8 +21,10 @@ end
 
 local ctx = reaper.ImGui_CreateContext("SimpleItemView")
 local font = reaper.ImGui_CreateFont("Arial", 14)
+local font_help_bold = reaper.ImGui_CreateFont("Arial Bold", 15)
 local font_slot = reaper.ImGui_CreateFont("Arial", 16)
 reaper.ImGui_Attach(ctx, font)
+reaper.ImGui_Attach(ctx, font_help_bold)
 reaper.ImGui_Attach(ctx, font_slot)
 
 -- ===== PERSISTENT STATE =====
@@ -33,6 +35,9 @@ local locked_pos_x = nil
 local locked_pos_y = nil
 local locked_size_w = nil
 local locked_size_h = nil
+-- Initial size used only when no previous user window size has been saved.
+local FIRST_OPEN_WIDTH = 1663
+local FIRST_OPEN_HEIGHT = 369
 local zero_cross_snap = true
 local sync_arrow_selection = false
 local waveform_mode = "stereo"
@@ -1362,6 +1367,7 @@ local grid_popup_y = nil
 
 local settings_popup_x = nil
 local settings_popup_y = nil
+local help_open = false
 
 local loop_len_popup_x = nil
 local loop_len_popup_y = nil
@@ -2172,7 +2178,7 @@ local function draw_top_bar(dl, mx, my, abs_wave_x, abs_btn_y, wave_w, wave_x_en
   DL_AddText(dl, abs_wave_x + (SZ.SET_BTN_W - tw_set) / 2, abs_btn_y + 2, BUTTON_TEXT, "SET")
 
   local mouse_in_btn = mx >= abs_wave_x and mx <= abs_wave_x + SZ.SET_BTN_W and my >= abs_btn_y and my <= abs_btn_y + SZ.SET_BTN_H
-  if mouse_in_btn and reaper.ImGui_IsMouseClicked(ctx, 0) and has_sel then
+  if not help_open and mouse_in_btn and reaper.ImGui_IsMouseClicked(ctx, 0) and has_sel then
     if apply_selection() then
       if snap_enabled then
         update_grid_reference(current_guid, take, item, section_off, playrate, src_len)
@@ -2199,14 +2205,14 @@ local function draw_top_bar(dl, mx, my, abs_wave_x, abs_btn_y, wave_w, wave_x_en
     local tw_slot = reaper.ImGui_CalcTextSize(ctx, label)
     -- Текст білий
     DL_AddText(dl, sx + (SZ.SLOT_W - tw_slot) / 2, sy + 2, BUTTON_TEXT, label)
-    if mouse_in_slot and reaper.ImGui_IsMouseClicked(ctx, 0) then
+    if not help_open and mouse_in_slot and reaper.ImGui_IsMouseClicked(ctx, 0) then
       if apply_slot(current_guid, i) then
         if snap_enabled then
           update_grid_reference(current_guid, take, item, section_off, playrate, src_len)
         end
       end
     end
-    if mouse_in_slot and reaper.ImGui_IsMouseClicked(ctx, 1) then remove_slot(current_guid, i) end
+    if not help_open and mouse_in_slot and reaper.ImGui_IsMouseClicked(ctx, 1) then remove_slot(current_guid, i) end
   end
 
   local can_add = #slots < MAX_SLOTS
@@ -2220,7 +2226,7 @@ local function draw_top_bar(dl, mx, my, abs_wave_x, abs_btn_y, wave_w, wave_x_en
   local tw_plus = reaper.ImGui_CalcTextSize(ctx, "+")
   -- Текст білий
   DL_AddText(dl, add_x + (SZ.ADD_BTN_W - tw_plus) / 2, abs_btn_y + 2, BUTTON_TEXT, "+")
-  if mouse_in_add and reaper.ImGui_IsMouseClicked(ctx, 0) and can_add then
+  if not help_open and mouse_in_add and reaper.ImGui_IsMouseClicked(ctx, 0) and can_add then
     add_slot(current_guid, start_offset, end_offset)
   end
 
@@ -2252,7 +2258,7 @@ local function draw_top_bar(dl, mx, my, abs_wave_x, abs_btn_y, wave_w, wave_x_en
   local tw_grid = reaper.ImGui_CalcTextSize(ctx, grid_btn_text)
   -- Текст білий
   DL_AddText(dl, grid_btn_x + (grid_btn_w - tw_grid) / 2, grid_btn_y + 2, BUTTON_TEXT, grid_btn_text)
-  if mouse_in_grid_btn and reaper.ImGui_IsMouseClicked(ctx, 0) then
+  if not help_open and mouse_in_grid_btn and reaper.ImGui_IsMouseClicked(ctx, 0) then
     reaper.ImGui_OpenPopup(ctx, "grid_dropdown_menu")
     grid_popup_x = grid_btn_x
     grid_popup_y = grid_btn_y + SZ.SET_BTN_H + 2
@@ -2277,7 +2283,7 @@ local function draw_top_bar(dl, mx, my, abs_wave_x, abs_btn_y, wave_w, wave_x_en
   -- Текст білий
   local snap_text = snap_enabled and BUTTON_TEXT or 0xA0A0A0FF
   DL_AddText(dl, snap_x + (SZ.SNAP_BTN_W - tw_snap) / 2, snap_y + 2, snap_text, "Snap")
-  if mouse_in_snap and reaper.ImGui_IsMouseClicked(ctx, 0) then
+  if not help_open and mouse_in_snap and reaper.ImGui_IsMouseClicked(ctx, 0) then
     local turning_on = not snap_enabled
     snap_enabled = not snap_enabled
     save_snap_state()
@@ -2317,7 +2323,7 @@ local function draw_top_bar(dl, mx, my, abs_wave_x, abs_btn_y, wave_w, wave_x_en
   local tw_link = reaper.ImGui_CalcTextSize(ctx, "Link")
   local link_text = sync_arrow_selection and BUTTON_TEXT or 0xA0A0A0FF
   DL_AddText(dl, link_x + (SZ.LINK_BTN_W - tw_link) / 2, link_y + 2, link_text, "Link")
-  if mouse_in_link and reaper.ImGui_IsMouseClicked(ctx, 0) then
+  if not help_open and mouse_in_link and reaper.ImGui_IsMouseClicked(ctx, 0) then
     sync_arrow_selection = not sync_arrow_selection
     save_persistent_state()
   end
@@ -2336,7 +2342,7 @@ local function draw_top_bar(dl, mx, my, abs_wave_x, abs_btn_y, wave_w, wave_x_en
   DL_AddLine(dl, ts_x2 - 5, ts_cy - 4, ts_x2 - 5, ts_cy + 4, ts_fg, 1.5)
   DL_AddLine(dl, ts_x2 - 5, ts_cy - 4, ts_x2 - 8, ts_cy - 4, ts_fg, 1.5)
   DL_AddLine(dl, ts_x2 - 5, ts_cy + 4, ts_x2 - 8, ts_cy + 4, ts_fg, 1.5)
-  if mouse_in_ts and reaper.ImGui_IsMouseClicked(ctx, 0) then set_time_selection_to_item() end
+  if not help_open and mouse_in_ts and reaper.ImGui_IsMouseClicked(ctx, 0) then set_time_selection_to_item() end
 
   local zc_y = abs_btn_y
   local zc_y2 = zc_y + SZ.SET_BTN_H
@@ -2354,7 +2360,7 @@ local function draw_top_bar(dl, mx, my, abs_wave_x, abs_btn_y, wave_w, wave_x_en
   local tw_zc = reaper.ImGui_CalcTextSize(ctx, "ZC")
   local zc_text = zero_cross_snap and BUTTON_TEXT or 0xA0A0A0FF
   DL_AddText(dl, zc_x + (SZ.ZC_BTN_W - tw_zc) / 2, zc_y + 2, zc_text, "ZC")
-  if mouse_in_zc and reaper.ImGui_IsMouseClicked(ctx, 0) then zero_cross_snap = not zero_cross_snap end
+  if not help_open and mouse_in_zc and reaper.ImGui_IsMouseClicked(ctx, 0) then zero_cross_snap = not zero_cross_snap end
 
   local lock_y = abs_btn_y
   local lock_y2 = lock_y + SZ.SET_BTN_H
@@ -2382,7 +2388,7 @@ local function draw_top_bar(dl, mx, my, abs_wave_x, abs_btn_y, wave_w, wave_x_en
     DL_AddLine(dl, lck_cx - 3, lck_cy - 4, lck_cx + 1, lck_cy - 4, lock_fg, 2)
     DL_AddLine(dl, lck_cx + 3, lck_cy - 1, lck_cx + 3, lck_cy - 3, lock_fg, 2)
   end
-  if mouse_in_lock and reaper.ImGui_IsMouseClicked(ctx, 0) then
+  if not help_open and mouse_in_lock and reaper.ImGui_IsMouseClicked(ctx, 0) then
     window_locked = not window_locked
     if window_locked then
       locked_pos_x, locked_pos_y = reaper.ImGui_GetWindowPos(ctx)
@@ -2401,7 +2407,7 @@ local function draw_top_bar(dl, mx, my, abs_wave_x, abs_btn_y, wave_w, wave_x_en
   local tw_gear = reaper.ImGui_CalcTextSize(ctx, gear_icon)
   -- Текст (іконка) білий
   DL_AddText(dl, gear_x + (SZ.GEAR_BTN_W - tw_gear) / 2, gear_y + 1, BUTTON_TEXT, gear_icon)
-  if mouse_in_gear and reaper.ImGui_IsMouseClicked(ctx, 0) then
+  if not help_open and mouse_in_gear and reaper.ImGui_IsMouseClicked(ctx, 0) then
     reaper.ImGui_OpenPopup(ctx, "settings_popup")
     settings_popup_x = gear_x2 - 160
     settings_popup_y = gear_y2 + 2
@@ -2440,7 +2446,7 @@ local function draw_top_bar(dl, mx, my, abs_wave_x, abs_btn_y, wave_w, wave_x_en
   DL_AddRect(dl, loop_btn_x, loop_btn_y, loop_btn_x2, loop_btn_y2, llb_fg, 3, 0, 1)
   -- Текст білий
   DL_AddText(dl, loop_btn_x + (loop_btn_w - tw_loop_btn) / 2, loop_btn_y + 2, BUTTON_TEXT, loop_btn_label)
-  if mouse_in_loop_len_btn and reaper.ImGui_IsMouseClicked(ctx, 0) then
+  if not help_open and mouse_in_loop_len_btn and reaper.ImGui_IsMouseClicked(ctx, 0) then
     reaper.ImGui_OpenPopup(ctx, "loop_length_popup")
     loop_len_popup_x = loop_btn_x
     loop_len_popup_y = loop_btn_y2 + 2
@@ -2453,7 +2459,7 @@ local function draw_top_bar(dl, mx, my, abs_wave_x, abs_btn_y, wave_w, wave_x_en
   local tw_x2 = reaper.ImGui_CalcTextSize(ctx, "X2")
   -- Текст білий
   DL_AddText(dl, x2_btn_x + (SZ.X2_BTN_W - tw_x2) / 2, x2_btn_y + 2, BUTTON_TEXT, "X2")
-  if mouse_in_x2_btn and reaper.ImGui_IsMouseClicked(ctx, 0) then
+  if not help_open and mouse_in_x2_btn and reaper.ImGui_IsMouseClicked(ctx, 0) then
     if scale_loop_length(2) then
       if snap_enabled then
         update_grid_reference(current_guid, take, item, section_off, playrate, src_len)
@@ -2471,7 +2477,7 @@ local function draw_top_bar(dl, mx, my, abs_wave_x, abs_btn_y, wave_w, wave_x_en
   local tw_div2 = reaper.ImGui_CalcTextSize(ctx, "/2")
   -- Текст білий
   DL_AddText(dl, div2_btn_x + (SZ.DIV2_BTN_W - tw_div2) / 2, div2_btn_y + 2, BUTTON_TEXT, "/2")
-  if mouse_in_div2_btn and reaper.ImGui_IsMouseClicked(ctx, 0) then
+  if not help_open and mouse_in_div2_btn and reaper.ImGui_IsMouseClicked(ctx, 0) then
     if scale_loop_length(0.5) then
       if snap_enabled then
         update_grid_reference(current_guid, take, item, section_off, playrate, src_len)
@@ -2487,7 +2493,7 @@ local function draw_top_bar(dl, mx, my, abs_wave_x, abs_btn_y, wave_w, wave_x_en
     mouse_in_loop_len_btn, mouse_in_x2_btn, mouse_in_div2_btn, mouse_in_gear
 end
 
--- (решта функцій без змін: draw_ruler, draw_grid_popup, draw_settings_popup, draw_loop_length_popup, nudge_loop_region, handle_vertical_arrow_scale, loop)
+-- (решта функцій без змін: draw_ruler, draw_grid_popup, draw_settings_popup, draw_loop_length_popup, nudge_loop_region, handle_vertical_arrow_step, loop)
 
 local function draw_ruler(dl, mx, my, shift_held, abs_wave_x, abs_ruler_y, wave_x_end, wave_w,
                            src_len, view_start, view_end, view_len, item_pos, start_offset, playrate,
@@ -2661,7 +2667,7 @@ local function draw_ruler(dl, mx, my, shift_held, abs_wave_x, abs_ruler_y, wave_
     DL_AddLine(dl, tick[1], tick[2], tick[3], tick[4], tick[5], tick[6])
   end
 
-  if reaper.ImGui_IsMouseClicked(ctx, 0) and mouse_in_ruler then
+  if not help_open and reaper.ImGui_IsMouseClicked(ctx, 0) and mouse_in_ruler then
     if mouse_in_thumb then
       ruler_scroll_drag = true
       ruler_scroll_start_mx = mx
@@ -2677,6 +2683,7 @@ local function draw_ruler(dl, mx, my, shift_held, abs_wave_x, abs_ruler_y, wave_
       ruler_scroll_start_off = pan_offset
     end
   end
+  if help_open then ruler_scroll_drag = false end
   if ruler_scroll_drag then
     if reaper.ImGui_IsMouseDown(ctx, 0) then
       local delta_px = mx - ruler_scroll_start_mx
@@ -2759,6 +2766,10 @@ local function draw_settings_popup()
     end
 
     reaper.ImGui_Separator(ctx)
+    if reaper.ImGui_MenuItem(ctx, "Help") then
+      help_open = true
+    end
+    reaper.ImGui_Separator(ctx)
     reaper.ImGui_TextColored(ctx, C.MARKER, "\xE2\x9C\xA6 Made by Andrew Dihtiaruk")
     if reaper.ImGui_MenuItem(ctx, "\xE2\x9C\xA6 Support Ko-Fi") then
       reaper.CF_ShellExecute("https://ko-fi.com/pianohousestudio/shop")
@@ -2767,6 +2778,107 @@ local function draw_settings_popup()
     reaper.ImGui_EndPopup(ctx)
   end
   reaper.ImGui_PopStyleVar(ctx)
+end
+
+-- ===== HELP WINDOW =====
+local function draw_help_window()
+  if not help_open then return end
+
+  local viewport = reaper.ImGui_GetMainViewport(ctx)
+  local vp_cx, vp_cy = reaper.ImGui_Viewport_GetCenter(viewport)
+  reaper.ImGui_SetNextWindowPos(ctx, vp_cx, vp_cy, reaper.ImGui_Cond_Appearing(), 0.5, 0.5)
+  reaper.ImGui_SetNextWindowSize(ctx, 720, 680, reaper.ImGui_Cond_FirstUseEver())
+
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_WindowBg(), theme.WindowBg)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ChildBg(), theme.ChildBg)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Border(), theme.Border)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Separator(), theme.Separator)
+  reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_WindowPadding(), 18, 14)
+  reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_WindowRounding(), 8)
+
+  local visible, open = reaper.ImGui_Begin(ctx, "FSR FlipX - Help", true,
+    reaper.ImGui_WindowFlags_NoCollapse())
+  if not open then help_open = false end
+
+  if visible then
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), C.MARKER)
+    reaper.ImGui_Text(ctx, "FSR FlipX - Quick Help")
+    reaper.ImGui_PopStyleColor(ctx)
+    reaper.ImGui_TextWrapped(ctx,
+      "Select an audio WAV item in REAPER. The waveform area shows the source, loop bounds and the current time selection.")
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), 0xFF4444FF)
+    reaper.ImGui_TextWrapped(ctx,
+      "The audio loop tempo must match the project tempo. Only then will Grid and Loop Length stay synchronized with bars and beats.")
+    reaper.ImGui_PopStyleColor(ctx)
+    reaper.ImGui_Separator(ctx)
+
+    local avail_w, avail_h = reaper.ImGui_GetContentRegionAvail(ctx)
+    if reaper.ImGui_BeginChild(ctx, "help_scroll", avail_w, avail_h) then
+      local function heading(text)
+        reaper.ImGui_Spacing(ctx)
+        reaper.ImGui_PushFont(ctx, font_help_bold, 15)
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), C.MARKER_HOV)
+        reaper.ImGui_Text(ctx, text)
+        reaper.ImGui_PopStyleColor(ctx)
+        reaper.ImGui_PopFont(ctx)
+      end
+      local function item(label, description)
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), C.MARKER)
+        reaper.ImGui_Text(ctx, "\xE2\x80\xA2")
+        reaper.ImGui_SameLine(ctx)
+        reaper.ImGui_Text(ctx, label)
+        reaper.ImGui_PopStyleColor(ctx)
+        reaper.ImGui_SameLine(ctx)
+        reaper.ImGui_TextWrapped(ctx, "- " .. description)
+      end
+
+      heading("Basic workflow")
+      item("Create a loop", "Hold the left mouse button in the waveform and drag a selection, then press SET or right-click the selection.")
+      item("Loop edges", "Drag the left or right marker to adjust the start or end of the current loop.")
+      item("Move the loop", "Drag the loop bar below the waveform, or use Up / Down to move it exactly one loop length.")
+
+      heading("Top controls")
+      item("SET", "Apply the current waveform selection as the new loop.")
+      item("1-9 / 0", "Recall slots 1-10. Left-click recalls a slot; right-click deletes it.")
+      item("+", "Save the current loop in the next free slot (up to 10 slots).")
+      item("LOOP LENGTH", "Choose a musical length: 1 Bar, 1/2, 1/4, 1/8, 1/16 or 1/32.")
+      item("X2", "Double the current loop length.")
+      item("/2", "Halve the current loop length.")
+      item("Grid", "Choose the grid division: 1 Bar, 1/2, 1/4, 1/8, 1/16 or 1/32.")
+      item("Snap", "Toggle snapping loop markers and edits to the selected grid division.")
+      item("TS", "Set REAPER's project time selection to the current item bounds.")
+      item("Link", "Keep REAPER's time selection synchronized with the current item bounds.")
+      item("ZC", "Toggle zero-crossing snap to help avoid clicks at loop edges.")
+      item("Lock", "Lock the script window position and size.")
+      item("Gear", "Open Appearance, Waveform Channels and this Help window.")
+
+      heading("Mouse")
+      item("Left drag in waveform", "Create a new selection.")
+      item("Right-click selection", "Immediately apply the selection as a loop.")
+      item("Drag a marker", "Adjust the loop start or end. Hold Shift for fine adjustment.")
+      item("Drag the loop bar", "Move the whole loop without changing its length. Hold Shift for fine adjustment.")
+      item("Middle drag", "Pan the waveform view.")
+      item("Mouse wheel", "Zoom around the mouse cursor.")
+      item("Ruler", "Click or drag the ruler view to pan through the source.")
+
+      heading("Keyboard")
+      item("Space", "Play or pause REAPER when the script window is focused.")
+      item("Escape", "Close and stop the entire script.")
+      item("Z", "Toggle zero-crossing snap. Ctrl + Z does not toggle it.")
+      item("`", "Reset zoom and pan to the initial view.")
+      item("T", "Set REAPER's time selection to the current item.")
+      item("1-9 / 0", "Recall slots 1-10 when the script window is focused and Ctrl is not held.")
+      item("Left / Right", "Nudge the loop left or right by a small step.")
+      item("Up", "Move the loop right by exactly its current length.")
+      item("Down", "Move the loop left by exactly its current length.")
+
+      reaper.ImGui_EndChild(ctx)
+    end
+  end
+
+  reaper.ImGui_End(ctx)
+  reaper.ImGui_PopStyleVar(ctx, 2)
+  reaper.ImGui_PopStyleColor(ctx, 4)
 end
 
 local function draw_loop_length_popup(current_guid, take, item, section_off, playrate, src_len)
@@ -2843,24 +2955,39 @@ local function nudge_loop_region(direction, shift_held, take, item, section_off,
   end
 end
 
-local function handle_vertical_arrow_scale(current_guid, take, item, section_off, playrate, src_len)
+local function handle_vertical_arrow_step(current_guid, take, item, section_off, playrate,
+                                           src_len, start_offset, end_offset)
   local up_pressed = reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_UpArrow(), true)
   local down_pressed = reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_DownArrow(), true)
   if not up_pressed and not down_pressed then return end
-  local factor = up_pressed and 2 or 0.5
-  if scale_loop_length(factor) then
-    if snap_enabled then
-      update_grid_reference(current_guid, take, item, section_off, playrate, src_len)
-    end
-    if sync_arrow_selection then
-      set_time_selection_to_item()
-    end
+
+  local region_len = end_offset - start_offset
+  if region_len <= 0 or region_len > src_len then return end
+
+  -- Up selects the next source-sized chunk; Down selects the previous one.
+  -- Do not snap here: the step must stay exactly equal to the current loop length.
+  local direction = up_pressed and 1 or -1
+  local max_start = math_max(0, src_len - region_len)
+  local new_s = start_offset + direction * region_len
+  if new_s < -0.0000001 or new_s > max_start + 0.0000001 then return end
+  new_s = math_max(0, math_min(max_start, new_s))
+
+  reaper.SetMediaItemTakeInfo_Value(take, "D_STARTOFFS", new_s - section_off)
+  reaper.SetMediaItemInfo_Value(item, "D_LENGTH", region_len / playrate)
+  reaper.UpdateArrange()
+  reaper.Undo_OnStateChangeEx("Move loop by its length", -1, -1)
+  if snap_enabled then
+    update_grid_reference(current_guid, take, item, section_off, playrate, src_len)
+  end
+  if sync_arrow_selection then
+    set_time_selection_to_item()
   end
 end
 
 -- ===== MAIN LOOP (решта без змін) =====
 
 local initial_pos_set = false
+local initial_size_set = false
 local FRAME_INTERVAL = 1 / 60
 local last_frame_time = 0
 
@@ -2874,9 +3001,22 @@ local function loop()
 
   settings_ui.draw(ctx, settings)
   refresh_colors()
+  draw_help_window()
 
   local open = true
   local flags = reaper.ImGui_WindowFlags_NoCollapse()
+
+  -- Apply the saved user size first; otherwise use the fixed initial size for
+  -- the very first opening. This is issued once so later resizing is still
+  -- controlled by the user.
+  if not initial_size_set then
+    local first_w = locked_size_w or FIRST_OPEN_WIDTH
+    local first_h = locked_size_h or FIRST_OPEN_HEIGHT
+    if first_w and first_h and first_w > 0 and first_h > 0 then
+      reaper.ImGui_SetNextWindowSize(ctx, first_w, first_h, reaper.ImGui_Cond_Always())
+    end
+    initial_size_set = true
+  end
 
   if window_locked then
     flags = flags | reaper.ImGui_WindowFlags_NoMove() | reaper.ImGui_WindowFlags_NoResize()
@@ -2905,6 +3045,11 @@ local function loop()
   local visible
   visible, open = reaper.ImGui_Begin(ctx, "FSR FlipX", true, flags)
 
+  -- Escape always closes the entire script, regardless of which child/popup is focused.
+  if reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_Escape(), false) then
+    open = false
+  end
+
   if visible then
     if not window_locked then
       locked_pos_x, locked_pos_y = reaper.ImGui_GetWindowPos(ctx)
@@ -2913,12 +3058,9 @@ local function loop()
 
     local is_focused = reaper.ImGui_IsWindowFocused(ctx, reaper.ImGui_FocusedFlags_RootAndChildWindows())
 
-    if is_focused then
+    if is_focused and not help_open then
       if reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_Space(), false) then
         reaper.Main_OnCommand(40044, 0)
-      end
-      if reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_Escape(), false) then
-        selection_start = nil; selection_end = nil
       end
       if reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_Z(), false) then
         local ctrl = reaper.ImGui_IsKeyDown(ctx, reaper.ImGui_Mod_Ctrl())
@@ -3142,7 +3284,7 @@ local function loop()
                    current_guid, take, item, section_off, playrate, src_len, item_pos,
                    slots, start_offset, end_offset, grid_div, grid_label)
 
-    if is_focused then
+    if is_focused and not help_open then
       for i = 1, 10 do
         if reaper.ImGui_IsKeyPressed(ctx, slot_keys[i], false) and not ctrl_held then
           if i <= #slots then
@@ -3164,7 +3306,8 @@ local function loop()
                            current_guid, snap_marker_time)
       end
 
-      handle_vertical_arrow_scale(current_guid, take, item, section_off, playrate, src_len)
+      handle_vertical_arrow_step(current_guid, take, item, section_off, playrate,
+                                 src_len, start_offset, end_offset)
     end
 
     draw_grid_popup()
@@ -3174,6 +3317,18 @@ local function loop()
       dl, mx, my, shift_held, abs_wave_x, abs_ruler_y, wave_x_end, wave_w,
       src_len, view_start, view_end, view_len, item_pos, start_offset, playrate,
       grid_project_start, grid_project_end, range_center)
+
+    -- The Help window is drawn above the main window. Do not let the main
+    -- waveform consume clicks, drags or wheel input while Help is open.
+    if help_open then
+      mouse_in_ruler = false
+      mouse_in_thumb = false
+      is_selecting = false
+      drag_mode, drag_activated = nil, false
+      loopbar_drag = false
+      loopbar_last_written_start = nil
+      is_panning = false
+    end
 
     -- ===== WAVEFORM AREA =====
     DL_AddRectFilled(dl, abs_wave_x, abs_wave_y, wave_x_end, wave_y_end, C.BG)
@@ -3299,11 +3454,11 @@ local function loop()
 
     draw_loop_length_popup(current_guid, take, item, section_off, playrate, src_len)
 
-    local near_start = math_abs(mx - sm_px) <= SZ.MARKER_W and my >= abs_wave_y and my <= wave_y_end
-    local near_end = math_abs(mx - em_px) <= SZ.MARKER_W and my >= abs_wave_y and my <= wave_y_end
-    local mouse_in_wave = mx >= abs_wave_x and mx <= wave_x_end and my >= abs_wave_y and my <= wave_y_end
-    local mouse_in_loopbar = (mx >= lb_x1 and mx <= lb_x2 and my >= abs_loopbar_y and my <= abs_loopbar_y + SZ.LOOPBAR_H)
-    local mouse_in_selection = has_valid_selection() and mx >= sel_left_px and mx <= sel_right_px and my >= abs_wave_y and my <= wave_y_end
+    local near_start = not help_open and math_abs(mx - sm_px) <= SZ.MARKER_W and my >= abs_wave_y and my <= wave_y_end
+    local near_end = not help_open and math_abs(mx - em_px) <= SZ.MARKER_W and my >= abs_wave_y and my <= wave_y_end
+    local mouse_in_wave = not help_open and mx >= abs_wave_x and mx <= wave_x_end and my >= abs_wave_y and my <= wave_y_end
+    local mouse_in_loopbar = not help_open and (mx >= lb_x1 and mx <= lb_x2 and my >= abs_loopbar_y and my <= abs_loopbar_y + SZ.LOOPBAR_H)
+    local mouse_in_selection = not help_open and has_valid_selection() and mx >= sel_left_px and mx <= sel_right_px and my >= abs_wave_y and my <= wave_y_end
 
     if reaper.ImGui_IsMouseClicked(ctx, 1) and mouse_in_selection then
       if apply_selection() then
@@ -3435,7 +3590,7 @@ local function loop()
     end
 
     local wheel = reaper.ImGui_GetMouseWheel(ctx)
-    if wheel ~= 0 and (mouse_in_wave or mouse_in_ruler) then
+    if not help_open and wheel ~= 0 and (mouse_in_wave or mouse_in_ruler) then
       if shift_held then
         local scroll_amount = view_len * 0.1
         pan_offset = pan_offset + wheel * scroll_amount
@@ -3455,7 +3610,7 @@ local function loop()
       end
     end
 
-    if reaper.ImGui_IsMouseClicked(ctx, 2) and mouse_in_wave then
+    if not help_open and reaper.ImGui_IsMouseClicked(ctx, 2) and mouse_in_wave then
       is_panning = true; pan_start_mx, pan_start_off = mx, pan_offset
     end
     if reaper.ImGui_IsMouseReleased(ctx, 2) then is_panning = false end
