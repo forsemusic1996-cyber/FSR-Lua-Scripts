@@ -3,7 +3,7 @@
 *              FSR FlipX
 * Section      Main
 * Author:      Andrew Dihtiaruk(FSR)
-* Version:     1.01
+* Version:     1.0.1
 -------------------------------------------------------------------------------------------               
 * DONATION:    http://ko-fi.com/pianohousestudio    ««««« Double-click the link to open it.
                http://www.paypal.com/paypalme/AndriiDrots Double-click the link to open it.
