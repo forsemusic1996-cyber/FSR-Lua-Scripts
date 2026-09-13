@@ -4,7 +4,7 @@
     <reapack name="FSR LoopX.lua" type="script" desc="FSR LoopX.lua">
       <version name="1.01" author="Andrew Dihtiaruk" time="2026-09-09T00:00:00Z">
         <source main="main" file="FSR LoopX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/bfedf9050b7364a00cf212cd13061d4b6b7ab419/FSR-Scripts/FSR%20LoopX.lua</source>
-        <changelog><![CDATA[- Fixed the issue where the script opened with an extremely small window size. The first-open size is now 1663 × 369.
+        <changelog><![CDATA[- Fixed the issue where the script opened with an extremely small window size. The first-open size is now 1663 Г— 369.
 - Added complete script closing with the Esc key.
 - Added loop navigation with arrow keys: Up moves right, and Down moves left by one loop length.
 - Added the Help menu with control and shortcut documentation.]]></changelog>
@@ -17,7 +17,7 @@
     <reapack name="FSR FlipX.lua" type="script" desc="FSR FlipX.lua">
       <version name="1.01" author="Andrew Dihtiaruk" time="2026-09-09T00:00:00Z">
         <source main="main" file="FSR FlipX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/5ebe9ee6ff89fb4b6541d7d666e9d826eb157724/FSR-Scripts/FSR%20FlipX.lua</source>
-        <changelog><![CDATA[- Fixed the issue where the script opened with an extremely small window size. The first-open size is now 1663 × 369.
+        <changelog><![CDATA[- Fixed the issue where the script opened with an extremely small window size. The first-open size is now 1663 Г— 369.
 - Added complete script closing with the Esc key.
 - Added loop navigation with arrow keys: Up moves right, and Down moves left by one loop length.
 - Added the Help menu with control and shortcut documentation.]]></changelog>
@@ -46,10 +46,9 @@
       </version>
     </reapack>
 
-
     <reapack name="FSR Region Templates.lua" type="script" desc="FSR Region Templates.lua">
       <version name="1.0" author="Andrew Dihtiaruk" time="2026-09-04T00:00:00Z">
-        <source main="main" file="FSR Region Templates.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20Region%20Templates.lua</source>
+        <source main="main" file="FSR Region Templates.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR%20Region%20Templates.lua</source>
         <changelog><![CDATA[Initial release.]]></changelog>
       </version>
     </reapack>
@@ -61,3 +60,19 @@
     </reapack>
   </category>
   <metadata>
+    <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}
+{\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
+\widowctrl\hyphauto
+{\pard \ql \f0 \sa180 \li0 \fi0 \outlinelevel0 \b \fs36 FSR Scripts for REAPER\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 Please support me if you find my work useful!\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 1. {\field{\*\fldinst{HYPERLINK "https://ko-fi.com/pianohousestudio/shop"}}{\fldrslt{\ul
+https://ko-fi.com/pianohousestudio/shop
+}}}\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 2. {\field{\*\fldinst{HYPERLINK "https://www.paypal.com/paypalme/AndriiDrots"}}{\fldrslt{\ul
+https://www.paypal.com/paypalme/AndriiDrots
+}}}\par}
+}]]></description>
+    <link rel="donation">https://ko-fi.com/pianohousestudio/shop</link>
+    <link rel="donation">https://www.paypal.com/paypalme/AndriiDrots</link>
+  </metadata>
+</index>
