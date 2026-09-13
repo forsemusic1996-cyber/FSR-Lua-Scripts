@@ -23,6 +23,14 @@
       </version>
     </reapack>
     <reapack name="FSR FlipX.lua" type="script" desc="FSR FlipX.lua">
+  <version name="1.0.2" author="Andrew Dihtiaruk" time="2026-09-14T00:00:00Z">
+    <source main="main" file="FSR FlipX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/1f3c50bb2d3291f8f003e342952319cd38610692/FSR-Scripts/FSR%20FlipX.lua</source>
+    <changelog><![CDATA[- Added Backspace as a keyboard shortcut to reset the loop to the full source length.
+- Added the Segments control with Off, 1/1, 1/2, 1/4, and 1/8 divisions.
+- Added support for sending ideas, bug reports, and error logs to the developer.
+- Improved visual appearance with added colors and buttons.]]></changelog>
+  </version>
+
       <version name="1.0.1" author="Andrew Dihtiaruk" time="2026-09-09T00:00:00Z">
         <source main="main" file="FSR FlipX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/5ebe9ee6ff89fb4b6541d7d666e9d826eb157724/FSR-Scripts/FSR%20FlipX.lua</source>
         <changelog><![CDATA[- Fixed the issue where the script opened with an extremely small window size. The first-open size is now 1663 Г— 369.
