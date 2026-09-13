@@ -2,27 +2,27 @@
 <index version="1" name="FSR Scripts">
   <category name="Utilities">
     <reapack name="FSR LoopX.lua" type="script" desc="FSR LoopX.lua">
-      <version name="1.01" author="Andrew Dihtiaruk" time="2026-09-09T00:00:00Z">
+      <version name="1.0.1" author="Andrew Dihtiaruk" time="2026-09-09T00:00:00Z">
         <source main="main" file="FSR LoopX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/bfedf9050b7364a00cf212cd13061d4b6b7ab419/FSR-Scripts/FSR%20LoopX.lua</source>
         <changelog><![CDATA[- Fixed the issue where the script opened with an extremely small window size. The first-open size is now 1663 Г— 369.
 - Added complete script closing with the Esc key.
 - Added loop navigation with arrow keys: Up moves right, and Down moves left by one loop length.
 - Added the Help menu with control and shortcut documentation.]]></changelog>
       </version>
-      <version name="1.0" author="Andrew Dihtiaruk" time="2026-08-23T00:00:00Z">
+      <version name="1.0.0" author="Andrew Dihtiaruk" time="2026-08-23T00:00:00Z">
         <source main="main" file="FSR LoopX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/5ebe9ee6ff89fb4b6541d7d666e9d826eb157724/FSR-Scripts/FSR%20LoopX.lua</source>
         <changelog><![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]></changelog>
       </version>
     </reapack>
     <reapack name="FSR FlipX.lua" type="script" desc="FSR FlipX.lua">
-      <version name="1.01" author="Andrew Dihtiaruk" time="2026-09-09T00:00:00Z">
+      <version name="1.0.1" author="Andrew Dihtiaruk" time="2026-09-09T00:00:00Z">
         <source main="main" file="FSR FlipX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/5ebe9ee6ff89fb4b6541d7d666e9d826eb157724/FSR-Scripts/FSR%20FlipX.lua</source>
         <changelog><![CDATA[- Fixed the issue where the script opened with an extremely small window size. The first-open size is now 1663 Г— 369.
 - Added complete script closing with the Esc key.
 - Added loop navigation with arrow keys: Up moves right, and Down moves left by one loop length.
 - Added the Help menu with control and shortcut documentation.]]></changelog>
       </version>
-      <version name="1.0" author="Andrew Dihtiaruk" time="2026-08-23T00:00:00Z">
+      <version name="1.0.0" author="Andrew Dihtiaruk" time="2026-08-23T00:00:00Z">
         <source main="main" file="FSR FlipX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/9fbecc4d5f343ee41306b61960bc3d8497cb9cc1/FSR-Scripts/FSR%20FlipX.lua</source>
         <changelog><![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]></changelog>
       </version>
