@@ -2,6 +2,11 @@
 <index version="1" name="FSR Scripts">
   <category name="Utilities">
     <reapack name="FSR LoopX.lua" type="script" desc="FSR LoopX.lua">
+  <version name="1.0.2" author="Andrew Dihtiaruk" time="2026-09-14T00:00:00Z">
+    <source main="main" file="FSR LoopX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/2392fedf335f15039fdecc214239e293c7fd5441/FSR-Scripts/FSR%20LoopX.lua</source>
+    <changelog><![CDATA[Added Backspace as a keyboard shortcut to reset the loop to the full source length. Added the Segments control with Off, 1/1, 1/2, 1/4, and 1/8 divisions. Added support for sending ideas, bug reports, and error logs to the developer. Improved visual appearance with added colors and buttons.]]></changelog>
+  </version>
+
       <version name="1.0.1" author="Andrew Dihtiaruk" time="2026-09-09T00:00:00Z">
         <source main="main" file="FSR LoopX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/bfedf9050b7364a00cf212cd13061d4b6b7ab419/FSR-Scripts/FSR%20LoopX.lua</source>
         <changelog><![CDATA[- Fixed the issue where the script opened with an extremely small window size. The first-open size is now 1663 Г— 369.
