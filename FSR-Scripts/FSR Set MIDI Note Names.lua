@@ -11,10 +11,12 @@
 * Bug Reports: If you find any errors, please report one of the link below                  
 * Website:     http://reaper-script-feedback.forsemusic1996.workers.dev/
 -------------------------------------------------------------------------------------------
+ENG.
 -- @about
 -- By default, notes in REAPER's MIDI Editor are not labeled with note names.
 -- This script automatically assigns note names to MIDI notes when you double-click a MIDI item
-
+RUS.
+По умолчанию в REAPER ноты в MIDI Editor не подписаны. Этот скрипт автоматически назначает им названия при открытии MIDI item.
 
 ### How to assign the script to double-click
 
