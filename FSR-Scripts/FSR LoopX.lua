@@ -10,7 +10,6 @@
                
 * Bug Reports: If you find any errors, please report one of the link below                  
 * Website:     http://forum.cockos.com/showthread.php?t=310866
-               http://reaper-script-feedback.forsemusic1996.workers.dev/
 
 
 -------------------------------------------------------------------------------------------
@@ -41,12 +40,12 @@ local locked_pos_y = nil
 local locked_size_w = nil
 local locked_size_h = nil
 -- Initial size used only when no previous user window size has been saved.
-local FIRST_OPEN_WIDTH = 1663
-local FIRST_OPEN_HEIGHT = 369
+FIRST_OPEN_WIDTH = 1663
+FIRST_OPEN_HEIGHT = 369
 local zero_cross_snap = true
 local beat_division = "off"
 local beat_anchor_project_time = nil
-local ZC_SEARCH_RADIUS = 0.005
+ZC_SEARCH_RADIUS = 0.005
 local right_click_hint_seen = false
 local waveform_mode = "stereo"
 
@@ -57,6 +56,8 @@ local feedback = {
   text = "",
   status = "",
   open = false,
+  open_site_requested = false,
+  play_toggle_requested = false,
 }
 
 local WAVEFORM_MODE_OPTIONS = {
@@ -124,7 +125,7 @@ local theme = {
     Separator = 0x505050FF, PopupBg = 0x252525FF, MenuBarBg = 0x2A2A2AFF,
     Border = 0x505050FF, ActivePreset = 0x00AAFFFF, ChildBg = 0x1A1A1AFF,
 }
-local THEME_COLOR_COUNT = 25
+THEME_COLOR_COUNT = 25
 
 local function applyTheme()
     local t = theme
@@ -1282,22 +1283,22 @@ end
 settings.load()
 refresh_colors()
 
-local MARKER_W    = 8
-local RULER_H     = 22
-local PADDING     = 8
-local WIN_PAD     = 6
-local SET_BTN_W   = 40
-local SET_BTN_H   = 18
-local LOOPBAR_H   = 14
-local SLOT_W      = 22
-local SLOT_GAP    = 3
-local ADD_BTN_W   = 20
-local LOCK_BTN_W  = 22
-local SETTINGS_BTN_W = 26
-local ZC_BTN_W    = 26
-local TS_BTN_W    = 22
-local SNAP_BTN_W  = 34
-local SLOT_ZONE_H = 6
+MARKER_W    = 8
+RULER_H     = 22
+PADDING     = 8
+WIN_PAD     = 6
+SET_BTN_W   = 40
+SET_BTN_H   = 18
+LOOPBAR_H   = 14
+SLOT_W      = 22
+SLOT_GAP    = 3
+ADD_BTN_W   = 20
+LOCK_BTN_W  = 22
+SETTINGS_BTN_W = 26
+ZC_BTN_W    = 26
+TS_BTN_W    = 22
+SNAP_BTN_W  = 34
+SLOT_ZONE_H = 6
 
 -- ===== GRID SYSTEM (FIXED ONLY) =====
 local GRID_FIXED_OPTIONS = {
@@ -1388,7 +1389,7 @@ local zoom        = 1.0
 local pan_offset  = 0.0
 local v_zoom      = 1.0
 local last_item_guid = nil
-local DRAG_THRESH = 4
+DRAG_THRESH = 4
 
 local item_zoom_cache = {}
 
@@ -1396,11 +1397,11 @@ local selection_start = nil
 local selection_end = nil
 local is_selecting = false
 
-local FINE_MODE_DIVISOR = 10
+FINE_MODE_DIVISOR = 10
 
-local AUTO_SCROLL_ZONE = 30
-local AUTO_SCROLL_SPEED = 0.02
-local EDGE_SCROLL_MARGIN = 5
+AUTO_SCROLL_ZONE = 30
+AUTO_SCROLL_SPEED = 0.02
+EDGE_SCROLL_MARGIN = 5
 
 local drag_mode = nil
 local drag_activated = false
@@ -1418,7 +1419,7 @@ local loop_preview_end = nil
 local last_loop_chunk_update = 0
 local last_loop_written_start = nil
 local last_loop_written_end = nil
-local LOOP_CHUNK_UPDATE_INTERVAL = 0.05
+LOOP_CHUNK_UPDATE_INTERVAL = 0.05
 
 local ruler_scroll_drag = false
 local ruler_scroll_start_mx, ruler_scroll_start_off = 0, 0
@@ -1426,10 +1427,10 @@ local ruler_scroll_start_mx, ruler_scroll_start_off = 0, 0
 local is_panning = false
 local pan_start_mx, pan_start_off = 0, 0
 
-local SAMPLE_POINT_RADIUS = 2.5
+SAMPLE_POINT_RADIUS = 2.5
 
 local item_slots = {}
-local MAX_SLOTS = 10
+MAX_SLOTS = 10
 
 -- ===== GRID REFERENCE MEMORY (per item GUID) =====
 -- Stores the last loop-section bounds (source-time s/e) that were committed
@@ -2182,7 +2183,7 @@ local function apply_slot(guid, index)
 end
 
 local last_arrange_update = 0
-local ARRANGE_UPDATE_INTERVAL = 0.033
+ARRANGE_UPDATE_INTERVAL = 0.033
 
 local function throttled_update_arrange()
   local now = reaper.time_precise()
@@ -2231,8 +2232,8 @@ local function draw_help_window()
     reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(), theme.ButtonHovered)
     reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(), theme.ButtonActive)
     if reaper.ImGui_Button(ctx, "Send Message##help_send_message", 110, 26) then
-      feedback.status = ""
-      feedback.open = true
+      -- Open the public feedback form after the ImGui frame is closed.
+      feedback.open_site_requested = true
     end
     reaper.ImGui_PopStyleColor(ctx, 3)
 
@@ -2382,7 +2383,6 @@ local function loop()
   settings_ui.draw(ctx, settings)
   refresh_colors()
   draw_help_window()
-  feedback.draw_window()
   local open = true
   local flags = reaper.ImGui_WindowFlags_NoCollapse()
 
@@ -2439,7 +2439,8 @@ local function loop()
 
     if is_focused and not help_open and not feedback.open then
       if reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_Space(), false) then
-        reaper.Main_OnCommand(40044, 0)
+        -- Run REAPER's Play/Stop command after ImGui_End on macOS.
+        feedback.play_toggle_requested = true
       end
       if reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_Enter(), false) then
         apply_selection()
@@ -3964,13 +3965,31 @@ local function loop()
     end
 
     DL_AddRect(dl, abs_wave_x, abs_wave_y, wave_x_end, wave_y_end, theme.Border, 0, 0, 1)
-
-    reaper.ImGui_End(ctx)
   end
+
+  -- ImGui_End must be called even when ImGui_Begin returned visible == false.
+  reaper.ImGui_End(ctx)
 
   popTheme()
   reaper.ImGui_PopStyleVar(ctx, 5)
   reaper.ImGui_PopFont(ctx)
+
+  if feedback.play_toggle_requested then
+    feedback.play_toggle_requested = false
+    reaper.Main_OnCommand(40044, 0)
+  end
+
+  if feedback.open_site_requested then
+    feedback.open_site_requested = false
+    if reaper.CF_ShellExecute then
+      reaper.CF_ShellExecute("https://reaper-script-feedback.forsemusic1996.workers.dev/")
+    elseif reaper.GetOS():match("OSX") then
+      reaper.ExecProcess("open https://reaper-script-feedback.forsemusic1996.workers.dev/", 0)
+    else
+      reaper.ShowMessageBox("SWS extension is required to open the feedback page.", "FSR LoopX", 0)
+    end
+  end
+
   check_and_save_state()
   if open then reaper.defer(loop) end
 end
