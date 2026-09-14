@@ -79,7 +79,7 @@
     <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}
 {\pard \ql \f0 \sa180 \li0 \fi0 \outlinelevel0 \b \fs36 FSR Set MIDI Note Names\par}
 {\pard \ql \f0 \sa180 \li0 \fi0 This script automatically sets note names when opening the MIDI Editor.\par}
-{\pard \ql \f0 \sa180 \li0 \fi0 Этот скрипт автоматически устанавливает названия нот при открытии MIDI-редактора.\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 \u1069?\u1090?\u1086?\u1090? \u1089?\u1082?\u1088?\u1080?\u1087?\u1090? \u1072?\u1074?\u1090?\u1086?\u1084?\u1072?\u1090?\u1080?\u1095?\u1077?\u1089?\u1082?\u1080? \u1091?\u1089?\u1090?\u1072?\u1085?\u1072?\u1074?\u1083?\u1080?\u1074?\u1072?\u1077?\u1090? \u1085?\u1072?\u1079?\u1074?\u1072?\u1085?\u1080?\u1103? \u1085?\u1086?\u1090? \u1087?\u1088?\u1080? \u1086?\u1090?\u1082?\u1088?\u1099?\u1090?\u1080?\u1080? MIDI-\u1088?\u1077?\u1076?\u1072?\u1082?\u1090?\u1086?\u1088?\u1072?.\par}
 }]]></description>
   </metadata>
 <version name="1.0.0" author="Andrew Dihtiaruk" time="2026-09-14T00:00:00Z">
