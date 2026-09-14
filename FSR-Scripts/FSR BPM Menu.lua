@@ -10,7 +10,7 @@
                
 * Bug Reports: If you find any errors, please report one of the link below                  
 * Website:     http://forum.cockos.com/showthread.php?t=310636
-               https://reaper-script-feedback.forsemusic1996.workers.dev/
+               http://reaper-script-feedback.forsemusic1996.workers.dev/
     
 ----------------------------------------------------------------
 ║                                                              ║
