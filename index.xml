@@ -74,7 +74,19 @@
         <changelog><![CDATA[Initial release.]]></changelog>
       </version>
     </reapack>
-  </category>
+      <reapack name="FSR Set MIDI Note Names.lua" type="script" desc="Assigns MIDI note names and opens the MIDI Editor.">
+      <version name="1.0.0" author="Andrew Dihtiaruk" time="2026-09-14T00:00:00Z">
+        <source main="main" file="FSR Set MIDI Note Names.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/618ae3aab4bf7178458e0d277685b6d08fc84205/FSR-Scripts/FSR%20Set%20MIDI%20Note%20Names.lua</source>
+        <changelog><![CDATA[Initial ReaPack release.]]></changelog>
+      </version>
+    </reapack>
+    <reapack name="FSR Preset Manager.lua" type="script" desc="Manage and quickly switch FX presets.">
+      <version name="1.0.0" author="Andrew Dihtiaruk" time="2026-09-14T00:00:00Z">
+        <source main="main" file="FSR Preset Manager.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/168b2a4d2758de83f413b5bfbca4b17b678719a0/FSR-Scripts/FSR%20Preset%20Manager.lua</source>
+        <changelog><![CDATA[Initial ReaPack release.]]></changelog>
+      </version>
+    </reapack>
+</category>
   <metadata>
     <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}
 {\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
