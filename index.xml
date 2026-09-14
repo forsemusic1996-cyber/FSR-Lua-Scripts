@@ -80,6 +80,14 @@
 {\pard \ql \f0 \sa180 \li0 \fi0 \outlinelevel0 \b \fs36 FSR Set MIDI Note Names\par}
 {\pard \ql \f0 \sa180 \li0 \fi0 This script automatically sets note names when opening the MIDI Editor.\par}
 {\pard \ql \f0 \sa180 \li0 \fi0 \u1069?\u1090?\u1086?\u1090? \u1089?\u1082?\u1088?\u1080?\u1087?\u1090? \u1072?\u1074?\u1090?\u1086?\u1084?\u1072?\u1090?\u1080?\u1095?\u1077?\u1089?\u1082?\u1080? \u1091?\u1089?\u1090?\u1072?\u1085?\u1072?\u1074?\u1083?\u1080?\u1074?\u1072?\u1077?\u1090? \u1085?\u1072?\u1079?\u1074?\u1072?\u1085?\u1080?\u1103? \u1085?\u1086?\u1090? \u1087?\u1088?\u1080? \u1086?\u1090?\u1082?\u1088?\u1099?\u1090?\u1080?\u1080? MIDI-\u1088?\u1077?\u1076?\u1072?\u1082?\u1090?\u1086?\u1088?\u1072?.\par}
+{\pard \ql \f0 \sb360 \sa180 \li0 \fi0 \b How to assign the script to double-click\b0\par}
+{\pard \ql \f0 \sb0 \sa0 \li0 \fi0 REAPER \u8594? Options \u8594? Preferences\u8230? \u8594? Editing Behavior \u8594? Mouse Modifiers\par}
+{\pard \ql \f0 \sb0 \sa0 \li0 \fi0 1. Context: Media item\par}
+{\pard \ql \f0 \sb0 \sa0 \li0 \fi0 2. Mouse modifier: Double click\par}
+{\pard \ql \f0 \sb0 \sa0 \li0 \fi0 3. Select Default action\par}
+{\pard \ql \f0 \sb0 \sa0 \li0 \fi0 4. Click Action list\u8230?\par}
+{\pard \ql \f0 \sb0 \sa0 \li0 \fi0 5. Find and select: Set MIDI Note Names\par}
+{\pard \ql \f0 \sb0 \sa0 \li0 \fi0 6. Click Apply \u8594? OK\par}
 }]]></description>
   </metadata>
 <version name="1.0.0" author="Andrew Dihtiaruk" time="2026-09-14T00:00:00Z">
