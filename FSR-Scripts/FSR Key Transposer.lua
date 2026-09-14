@@ -35,10 +35,6 @@ Then choose the target note/key from the submenu to transpose the sample.
 └──────────────────────┘   └──────────────────────┘   └──────────────────────┘
 --]] 
 
-if not reaper.APIExists("JS_Window_Find") then
-    reaper.ShowMessageBox("Потрібен js_ReaScriptAPI!", "Помилка", 0)
-    return
-end
 
 local notes = {
     { name = "C",  value = 0  },
