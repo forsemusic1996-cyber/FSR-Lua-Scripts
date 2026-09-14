@@ -143,19 +143,6 @@
         <changelog><![CDATA[Initial ReaPack release.]]></changelog>
       </version>
     </reapack>
-        <reapack name="FSR Preset Manager" type="script" desc="FSR Preset Manager">
-        <metadata>
-    <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}
-{\pard \ql \f0 \sa180 \li0 \fi0 \outlinelevel0 \b \fs36 FSR Preset Manager\par}
-{\pard \ql \f0 \sa180 \li0 \fi0 FSR Preset Manager is a REAPER utility for quickly browsing, searching, organizing, and switching presets for the currently focused FX. It supports folders, tags, color markers, sorting, and custom hotkeys.\par}
-{\pard \ql \f0 \sa180 \li0 \fi0 FSR Preset Manager \u8212? \u1101?\u1090?\u1086? \u1091?\u1090?\u1080?\u1083?\u1080?\u1090?\u1072? \u1076?\u1083?\u1103? REAPER, \u1082?\u1086?\u1090?\u1086?\u1088?\u1072?\u1103? \u1087?\u1086?\u1079?\u1074?\u1086?\u1083?\u1103?\u1077?\u1090? \u1073?\u1099?\u1089?\u1090?\u1088?\u1086? \u1087?\u1088?\u1086?\u1089?\u1084?\u1072?\u1090?\u1088?\u1080?\u1074?\u1072?\u1090?\u1100?, \u1080?\u1089?\u1082?\u1072?\u1090?\u1100?, \u1086?\u1088?\u1075?\u1072?\u1085?\u1080?\u1079?\u1086?\u1074?\u1099?\u1074?\u1072?\u1090?\u1100? \u1080? \u1087?\u1077?\u1088?\u1077?\u1082?\u1083?\u1102?\u1095?\u1072?\u1090?\u1100? \u1087?\u1088?\u1077?\u1089?\u1077?\u1090?\u1099? \u1090?\u1077?\u1082?\u1091?\u1097?\u1077?\u1075?\u1086? FX. \u1055?\u1086?\u1076?\u1076?\u1077?\u1088?\u1078?\u1080?\u1074?\u1072?\u1102?\u1090?\u1089?\u1103? \u1087?\u1072?\u1087?\u1082?\u1080?, \u1090?\u1077?\u1075?\u1080?, \u1094?\u1074?\u1077?\u1090?\u1086?\u1074?\u1099?\u1077? \u1084?\u1077?\u1090?\u1082?\u1080?, \u1089?\u1086?\u1088?\u1090?\u1080?\u1088?\u1086?\u1074?\u1082?\u1072? \u1080? \u1087?\u1086?\u1083?\u1100?\u1079?\u1086?\u1074?\u1072?\u1090?\u1077?\u1083?\u1100?\u1089?\u1082?\u1080?\u1077? \u1075?\u1086?\u1088?\u1103?\u1095?\u1080?\u1077? \u1082?\u1083?\u1072?\u1074?\u1080?\u1096?\u1080?.\par}
-}]]></description>
-  </metadata>
-<version name="1.0.0" author="Andrew Dihtiaruk" time="2026-09-14T00:00:00Z">
-        <source main="main" file="FSR Preset Manager.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/168b2a4d2758de83f413b5bfbca4b17b678719a0/FSR-Scripts/FSR%20Preset%20Manager.lua</source>
-        <changelog><![CDATA[Initial ReaPack release.]]></changelog>
-      </version>
-    </reapack>
 </category>
   <metadata>
     <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}
