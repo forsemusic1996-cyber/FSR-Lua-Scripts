@@ -75,7 +75,14 @@
       </version>
     </reapack>
           <reapack name="FSR Set MIDI Note Names" type="script" desc="FSR Set MIDI Note Names">
-      <version name="1.0.0" author="Andrew Dihtiaruk" time="2026-09-14T00:00:00Z">
+        <metadata>
+    <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}
+{\pard \ql \f0 \sa180 \li0 \fi0 \outlinelevel0 \b \fs36 FSR Set MIDI Note Names\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 This script automatically sets note names when opening the MIDI Editor.\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 Этот скрипт автоматически устанавливает названия нот при открытии MIDI-редактора.\par}
+}]]></description>
+  </metadata>
+<version name="1.0.0" author="Andrew Dihtiaruk" time="2026-09-14T00:00:00Z">
         <source main="main" file="FSR Set MIDI Note Names.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/618ae3aab4bf7178458e0d277685b6d08fc84205/FSR-Scripts/FSR%20Set%20MIDI%20Note%20Names.lua</source>
         <changelog><![CDATA[Initial ReaPack release.]]></changelog>
       </version>
