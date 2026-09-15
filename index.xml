@@ -12,6 +12,10 @@
 
 
 
+
+
+
+
   <version name="1.0.2" author="Andrew Dihtiaruk" time="2026-09-14T00:00:00Z">
     <source main="main" file="FSR LoopX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/2392fedf335f15039fdecc214239e293c7fd5441/FSR-Scripts/FSR%20LoopX.lua</source>
     <changelog><![CDATA[- Added Backspace as a keyboard shortcut to reset the loop to the full source length.
@@ -19,6 +23,10 @@
 - Added support for sending ideas, bug reports, and error logs to the developer.
 - Improved visual appearance with added colors and buttons.]]></changelog>
   </version>
+
+
+
+
 
 
 
@@ -55,6 +63,10 @@
 
 
 
+
+
+
+
 <version name="1.0.2" author="Andrew Dihtiaruk" time="2026-09-14T00:00:00Z">
     <source main="main" file="FSR FlipX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/1f3c50bb2d3291f8f003e342952319cd38610692/FSR-Scripts/FSR%20FlipX.lua</source>
     <changelog><![CDATA[- Added Backspace as a keyboard shortcut to reset the loop to the full source length.
@@ -62,6 +74,10 @@
 - Added support for sending ideas, bug reports, and error logs to the developer.
 - Improved visual appearance with added colors and buttons.]]></changelog>
   </version>
+
+
+
+
 
 
 
@@ -123,6 +139,10 @@
 
 
 
+
+
+
+
     <reapack name="FSR Region Templates.lua" type="script" desc="FSR Region Templates.lua">
         <metadata>
                     <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}{\colortbl;\red0\green0\blue255;}
@@ -172,13 +192,6 @@
         <changelog><![CDATA[Initial ReaPack release.]]></changelog>
       </version>
     </reapack>
-    <reapack name="FSR Preset Manager.lua" type="script" desc="FSR Preset Manager">
-      <version name="0.0.1" author="Andrew Dihtiaruk" time="2026-09-15T00:00:00Z">
-        <source main="main" file="FSR Preset Manager.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/440e67e175b2e897bc48b10dcb46756195265337/FSR-Scripts/FSR%20Preset%20Manager.lua</source>
-        <changelog><![CDATA[Initial release of FSR Preset Manager.]]></changelog>
-      </version>
-    </reapack>
-
 </category>
   <metadata>
     <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}
