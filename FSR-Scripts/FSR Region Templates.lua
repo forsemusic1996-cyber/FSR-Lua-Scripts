@@ -2,26 +2,26 @@
 -------------------------------------------------------------------------------------------
 *              FSR  Region Templates
 * Section      Main
-* Author:      Andrew Dihtiaruk (FSR)
-* Version:     1.00
+* Author:      Andrew Dihtaryk(FSR)
+* Version:     1.0.1
 -------------------------------------------------------------------------------------------               
 * DONATION:    http://ko-fi.com/pianohousestudio    ««««« Double-click the link to open it.
                http://www.paypal.com/paypalme/AndriiDrots Double-click the link to open it.
                
 * Bug Reports: If you find any errors, please report one of the link below                  
-* Website:     http://forum.cockos.com/showthread.php?t=311001
-               http://reaper-script-feedback.forsemusic1996.workers.dev/
+* Website:    
+    
 
 --]]
-local r = reaper
+r = reaper
 
 if not r.ImGui_GetVersion then
     r.MB("ReaImGui not installed!", "Error", 0)
     return
 end
 
-local ctx = r.ImGui_CreateContext("Region Templates")
-local function disableKeyboardNav(ctx)
+ctx = r.ImGui_CreateContext("Region Templates")
+function disableKeyboardNav(ctx)
     if r.ImGui_GetConfigVar and r.ImGui_SetConfigVar and r.ImGui_ConfigVar_Flags and r.ImGui_ConfigFlags_NavEnableKeyboard then
         local flags_var = r.ImGui_ConfigVar_Flags()
         local flags = r.ImGui_GetConfigVar(ctx, flags_var)
@@ -32,6 +32,9 @@ local function disableKeyboardNav(ctx)
         r.ImGui_SetConfigVar(ctx, flags_var, flags)
     end
     if r.ImGui_SetConfigVar then
+        if r.ImGui_ConfigVar_WindowsMoveFromTitleBarOnly then
+            r.ImGui_SetConfigVar(ctx, r.ImGui_ConfigVar_WindowsMoveFromTitleBarOnly(), 1)
+        end
         if r.ImGui_ConfigVar_NavCaptureKeyboard then
             r.ImGui_SetConfigVar(ctx, r.ImGui_ConfigVar_NavCaptureKeyboard(), 0)
         end
@@ -44,71 +47,77 @@ local function disableKeyboardNav(ctx)
     end
 end
 disableKeyboardNav(ctx)
-local font = r.ImGui_CreateFont("Arial", 14)
+font = r.ImGui_CreateFont("Arial", 14)
 r.ImGui_Attach(ctx, font)
 
-local FONT_SIZE = 13
+FONT_SIZE = 13
 
-local SCRIPT_PATH = ({r.get_action_context()})[2]:match("^(.*[/\\])")
-local EXT_SECTION = "RegionTemplatesManager"
-local EXT_KEY_DATA = "groups_data"
-local EXT_KEY_ACTIVE_SLOT = "active_slot"
-local EXT_KEY_ACTIVE_GROUP = "active_group"
-local EXT_KEY_LOCK_POSITION = "lock_position"
-local EXT_KEY_NO_DOCKING = "no_docking"
-local EXT_KEY_WINDOW_W = "window_w"
-local EXT_KEY_WINDOW_H = "window_h"
-local EXT_KEY_WINDOW_X = "window_x"
-local EXT_KEY_WINDOW_Y = "window_y"
-local EXT_KEY_GROUPS_PANEL_W = "groups_panel_w"
-local EXT_KEY_ITEM_SPACING = "item_spacing"
-local EXT_KEY_SHOW_COLOR_MARKERS = "show_color_markers"
-local EXT_KEY_SHOW_ITEM_NUMBERS = "show_item_numbers"
-local EXT_KEY_DELETE_PREV_REG = "delete_prev_regions"
-local EXT_KEY_INSERT_AT_CURSOR = "insert_at_cursor"
-local EXT_KEY_LAST_EXPORT_PATH = "last_export_path"
-local EXT_KEY_SHOW_FOLDERS_PANEL = "show_folders_panel"
-local EXT_KEY_ZOOM_TO_REGIONS = "zoom_to_regions"
-local EXT_KEY_CLEAR_TOOLTIP = "clear_tooltip"
-local EXT_KEY_BACKGROUND_COLOR = "background_color"
-local EXT_KEY_ACCENT_COLOR = "accent_color"
-local EXT_KEY_TEXT_COLOR = "text_color"
-local SWS_DELETE_ALL_REGIONS_ACTION = "_SWSMARKERLIST10"
+SCRIPT_PATH = ({r.get_action_context()})[2]:match("^(.*[/\\])")
+EXT_SECTION = "RegionTemplatesManager"
+EXT_KEY_DATA = "groups_data"
+EXT_KEY_ACTIVE_SLOT = "active_slot"
+EXT_KEY_ACTIVE_GROUP = "active_group"
+EXT_KEY_LOCK_POSITION = "lock_position"
+EXT_KEY_NO_DOCKING = "no_docking"
+EXT_KEY_WINDOW_W = "window_w"
+EXT_KEY_WINDOW_H = "window_h"
+EXT_KEY_WINDOW_X = "window_x"
+EXT_KEY_WINDOW_Y = "window_y"
+EXT_KEY_GROUPS_PANEL_W = "groups_panel_w"
+EXT_KEY_ITEM_SPACING = "item_spacing"
+EXT_KEY_SHOW_COLOR_MARKERS = "show_color_markers"
+EXT_KEY_SHOW_ITEM_NUMBERS = "show_item_numbers"
+EXT_KEY_DELETE_PREV_REG = "delete_prev_regions"
+EXT_KEY_INSERT_AT_CURSOR = "insert_at_cursor"
+EXT_KEY_LAST_EXPORT_PATH = "last_export_path"
+EXT_KEY_SHOW_FOLDERS_PANEL = "show_folders_panel"
+EXT_KEY_ZOOM_TO_REGIONS = "zoom_to_regions"
+EXT_KEY_CLEAR_TOOLTIP = "clear_tooltip"
+EXT_KEY_BACKGROUND_COLOR = "background_color"
+EXT_KEY_ACCENT_COLOR = "accent_color"
+EXT_KEY_TEXT_COLOR = "text_color"
+EXT_KEY_GITHUB_REPO      = "github_repo"
+EXT_KEY_GITHUB_BRANCH    = "github_branch"
+EXT_KEY_GITHUB_FOLDER    = "github_folder"
+EXT_KEY_GITHUB_LAST_SYNC = "github_last_sync"
+EXT_KEY_GITHUB_WINDOW_W  = "github_window_w"
+EXT_KEY_GITHUB_WINDOW_H  = "github_window_h"
+SWS_DELETE_ALL_REGIONS_ACTION = "_SWSMARKERLIST10"
 
 -- File extensions:
 --   .rgti = one Item
 --   .rgtg = one Group
 --   .rgt  = the complete Preset Library (All)
-local ITEM_FILE_EXTENSION    = "rgti"
-local GROUP_FILE_EXTENSION   = "rgtg"
-local LIBRARY_FILE_EXTENSION = "rgt"
-local FILE_HEADER = "[RegionTemplates]"
-local FILE_VERSION = "2.0"
+ITEM_FILE_EXTENSION    = "rgti"
+GROUP_FILE_EXTENSION   = "rgtg"
+LIBRARY_FILE_EXTENSION = "rgt"
+FILE_HEADER = "[RegionTemplates]"
+FILE_VERSION = "2.0"
 
-local MIN_WINDOW_W = 300
-local MIN_WINDOW_H = 200
-local MIN_PANEL_W = 80
-local DIVIDER_WIDTH = 6
-local TEXT_INDENT = 6
+MIN_WINDOW_W = 300
+MIN_WINDOW_H = 200
+MIN_PANEL_W = 80
+DIVIDER_WIDTH = 6
+TEXT_INDENT = 6
 
-local groups = {}
-local selected_group_index = 1
+groups = {}
+selected_group_index = 1
 
-local lock_position = r.GetExtState(EXT_SECTION, EXT_KEY_LOCK_POSITION) == "true"
-local no_docking = r.GetExtState(EXT_SECTION, EXT_KEY_NO_DOCKING) ~= "false"
-local delete_prev_regions = r.GetExtState(EXT_SECTION, EXT_KEY_DELETE_PREV_REG) ~= "false"
-local insert_at_cursor = r.GetExtState(EXT_SECTION, EXT_KEY_INSERT_AT_CURSOR) == "true"
-local show_folders_panel = r.GetExtState(EXT_SECTION, EXT_KEY_SHOW_FOLDERS_PANEL) ~= "false"
-local zoom_to_regions = r.GetExtState(EXT_SECTION, EXT_KEY_ZOOM_TO_REGIONS) == "true"
-local show_clear_tooltip = r.GetExtState(EXT_SECTION, EXT_KEY_CLEAR_TOOLTIP) ~= "false"
-local zoom_padding_pct = 2
+lock_position = r.GetExtState(EXT_SECTION, EXT_KEY_LOCK_POSITION) == "true"
+no_docking = r.GetExtState(EXT_SECTION, EXT_KEY_NO_DOCKING) ~= "false"
+delete_prev_regions = r.GetExtState(EXT_SECTION, EXT_KEY_DELETE_PREV_REG) ~= "false"
+insert_at_cursor = r.GetExtState(EXT_SECTION, EXT_KEY_INSERT_AT_CURSOR) == "true"
+show_folders_panel = r.GetExtState(EXT_SECTION, EXT_KEY_SHOW_FOLDERS_PANEL) ~= "false"
+zoom_to_regions = r.GetExtState(EXT_SECTION, EXT_KEY_ZOOM_TO_REGIONS) == "true"
+show_clear_tooltip = r.GetExtState(EXT_SECTION, EXT_KEY_CLEAR_TOOLTIP) ~= "false"
+zoom_padding_pct = 2
 
-local last_export_path = r.GetExtState(EXT_SECTION, EXT_KEY_LAST_EXPORT_PATH)
+last_export_path = r.GetExtState(EXT_SECTION, EXT_KEY_LAST_EXPORT_PATH)
 if last_export_path == "" then
     last_export_path = SCRIPT_PATH
 end
 
-local ITEM_COLORS = {
+ITEM_COLORS = {
     { name = "None",   color = 0x00000000 },
     { name = "Red",    color = 0xFF4444FF },
     { name = "Orange", color = 0xFF8844FF },
@@ -120,74 +129,126 @@ local ITEM_COLORS = {
     { name = "Pink",   color = 0xFF44AAFF },
 }
 
-local show_color_markers = r.GetExtState(EXT_SECTION, EXT_KEY_SHOW_COLOR_MARKERS) ~= "false"
-local show_item_numbers  = r.GetExtState(EXT_SECTION, EXT_KEY_SHOW_ITEM_NUMBERS) == "true"
+show_color_markers = r.GetExtState(EXT_SECTION, EXT_KEY_SHOW_COLOR_MARKERS) ~= "false"
+show_item_numbers  = r.GetExtState(EXT_SECTION, EXT_KEY_SHOW_ITEM_NUMBERS) == "true"
 
-local MARKER_SIZE = 5
+MARKER_SIZE = 5
 
-local layout = {
+layout = {
     groups_panel_w = tonumber(r.GetExtState(EXT_SECTION, EXT_KEY_GROUPS_PANEL_W)) or 180,
     item_spacing   = 5,
 }
 
-local saved_window_w = tonumber(r.GetExtState(EXT_SECTION, EXT_KEY_WINDOW_W)) or 500
-local saved_window_h = tonumber(r.GetExtState(EXT_SECTION, EXT_KEY_WINDOW_H)) or 400
-local saved_window_x = tonumber(r.GetExtState(EXT_SECTION, EXT_KEY_WINDOW_X))
-local saved_window_y = tonumber(r.GetExtState(EXT_SECTION, EXT_KEY_WINDOW_Y))
+saved_window_w = tonumber(r.GetExtState(EXT_SECTION, EXT_KEY_WINDOW_W)) or 500
+saved_window_h = tonumber(r.GetExtState(EXT_SECTION, EXT_KEY_WINDOW_H)) or 400
+saved_window_x = tonumber(r.GetExtState(EXT_SECTION, EXT_KEY_WINDOW_X))
+saved_window_y = tonumber(r.GetExtState(EXT_SECTION, EXT_KEY_WINDOW_Y))
 saved_window_w = math.max(saved_window_w, MIN_WINDOW_W)
 saved_window_h = math.max(saved_window_h, MIN_WINDOW_H)
 
-local first_frame = true
+first_frame = true
 
-local active_slot_index = tonumber(r.GetExtState(EXT_SECTION, EXT_KEY_ACTIVE_SLOT))  or 0
-local active_slot_group = tonumber(r.GetExtState(EXT_SECTION, EXT_KEY_ACTIVE_GROUP)) or 0
+active_slot_index = tonumber(r.GetExtState(EXT_SECTION, EXT_KEY_ACTIVE_SLOT))  or 0
+active_slot_group = tonumber(r.GetExtState(EXT_SECTION, EXT_KEY_ACTIVE_GROUP)) or 0
 
-local rename_item_index = nil
-local rename_item_buf   = ""
-local open_rename_item_modal = false
+rename_item_index = nil
+rename_item_buf   = ""
+open_rename_item_modal = false
 
-local rename_group_index = nil
-local rename_group_buf   = ""
-local open_rename_group_modal = false
+rename_group_index = nil
+rename_group_buf   = ""
+open_rename_group_modal = false
 
-local new_group_buf        = "New Group"
-local open_new_group_modal = false
+new_group_buf        = "New Group"
+open_new_group_modal = false
 
-local save_template_buf        = "New Template"
-local open_save_template_modal = false
-local pending_save_data        = nil
+save_template_buf        = "New Template"
+open_save_template_modal = false
+pending_save_data        = nil
 
-local pending_markers = {}
+pending_markers = {}
 
-local pending_save_layout      = false
-local pending_save_layout_time = 0
-local SAVE_DELAY               = 0.5
+pending_save_layout      = false
+pending_save_layout_time = 0
+SAVE_DELAY               = 0.5
 
-local open_import_modal = false
-local import_data       = nil
-local import_mode       = 1
+open_import_modal = false
+import_data       = nil
+import_mode       = 1
 
-local pending_export_group = nil
-local pending_export_item  = nil
-local pending_delete_group = nil
+pending_export_group = nil
+pending_export_item  = nil
+pending_delete_group = nil
 
-local is_dragging_divider = false
-local drag_start_x        = 0
-local drag_start_w        = 0
+-- GitHub repository settings. The repository is read-only from this script;
+-- publishing templates remains a normal GitHub workflow.
+OLD_TEST_GITHUB_REPO = "https://github.com/forsemusic1996-cyber/region-templates-test"
+DEFAULT_GITHUB_REPO = "https://github.com/forsemusic1996-cyber/Region-Templates-Library"
+TEMPLATE_UPLOAD_REQUEST_URL = "https://www.dropbox.com/request/5z9j1sjdls22c9rc50ev"
+github_repo       = r.GetExtState(EXT_SECTION, EXT_KEY_GITHUB_REPO)
+github_branch     = r.GetExtState(EXT_SECTION, EXT_KEY_GITHUB_BRANCH)
+github_folder     = r.GetExtState(EXT_SECTION, EXT_KEY_GITHUB_FOLDER)
+github_last_sync  = tonumber(r.GetExtState(EXT_SECTION, EXT_KEY_GITHUB_LAST_SYNC)) or 0
+github_window_w   = tonumber(r.GetExtState(EXT_SECTION, EXT_KEY_GITHUB_WINDOW_W))
+github_window_h   = tonumber(r.GetExtState(EXT_SECTION, EXT_KEY_GITHUB_WINDOW_H))
+if github_repo == "" or github_repo == OLD_TEST_GITHUB_REPO then github_repo = DEFAULT_GITHUB_REPO end
+if github_branch == "" then github_branch = "main" end
+if github_folder == "" then github_folder = "RegionTemplates" end
+open_github_settings_modal = false
+github_repo_buf            = github_repo
+github_branch_buf          = github_branch
+github_folder_buf          = github_folder
+github_sync_message        = ""
+github_sync_is_error       = false
+pending_remote_updates     = {}
+open_remote_update_modal   = false
+remote_catalog              = {}
+remote_selection            = {}
+remote_folder_updated_at    = {}
+remote_about_open           = false
+open_remote_catalog_modal   = false
 
-local toast_message  = nil
-local toast_time     = 0
-local toast_duration = 2.0
-local toast_is_error = false
-local clear_tooltip_flash_until = 0
+is_dragging_divider = false
+drag_start_x        = 0
+drag_start_w        = 0
 
-local function ShowToast(message, is_error)
+toast_message  = nil
+toast_time     = 0
+toast_duration = 2.0
+toast_is_error = false
+clear_tooltip_flash_until = 0
+
+function ShowToast(message, is_error)
     toast_message  = message
     toast_time     = r.time_precise()
     toast_is_error = is_error or false
 end
 
-local function LerpColorRGBA(c1, c2, t)
+function FormatRemoteDate(value)
+    local text = tostring(value or "")
+    local year, month, day = text:match("^(%d%d%d%d)%-(%d%d)%-(%d%d)")
+    if year then return day .. "." .. month .. "." .. year end
+    if text ~= "" then return text end
+    return "?"
+end
+
+function GetRemoteFolderDateLabel(genre)
+    return "Last update: " .. FormatRemoteDate(remote_folder_updated_at[genre])
+end
+
+function GetRemoteTemplateName(entry)
+    local name = tostring(entry and entry.name or "")
+    name = name:gsub("%.[Rr][Gg][Tt][Ii]$", "")
+    if name == "" then return "Template" end
+    return name
+end
+
+function DrawFolderIcon(draw_list, x, y, color)
+    r.ImGui_DrawList_AddRectFilled(draw_list, x + 1, y + 4, x + 14, y + 12, color, 2)
+    r.ImGui_DrawList_AddRectFilled(draw_list, x + 2, y + 2, x + 8, y + 5, color, 1)
+end
+
+function LerpColorRGBA(c1, c2, t)
     if t <= 0 then return c1 end
     if t >= 1 then return c2 end
     local r1, g1, b1, a1 = (c1 >> 24) & 0xFF, (c1 >> 16) & 0xFF, (c1 >> 8) & 0xFF, c1 & 0xFF
@@ -199,15 +260,15 @@ local function LerpColorRGBA(c1, c2, t)
     return (rr << 24) | (gg << 16) | (bb << 8) | aa
 end
 
-local function ColorRGBAtoRGB(c)
+function ColorRGBAtoRGB(c)
     return (c >> 8) & 0xFFFFFF
 end
 
-local function ColorRGBtoRGBA(c)
+function ColorRGBtoRGBA(c)
     return (c << 8) | 0xFF
 end
 
-local function LoadColorSetting(key, default_color)
+function LoadColorSetting(key, default_color)
     local saved = tonumber(r.GetExtState(EXT_SECTION, key))
     if saved then
         return (saved & 0xFFFFFF00) | 0xFF
@@ -215,14 +276,14 @@ local function LoadColorSetting(key, default_color)
     return default_color
 end
 
-local DEFAULT_BACKGROUND_COLOR = 0x1E1E1EFF
-local DEFAULT_ACCENT_COLOR     = 0x00AAFFFF
-local DEFAULT_TEXT_COLOR       = 0xE0E0E0FF
-local background_color = LoadColorSetting(EXT_KEY_BACKGROUND_COLOR, DEFAULT_BACKGROUND_COLOR)
-local accent_color     = LoadColorSetting(EXT_KEY_ACCENT_COLOR,     DEFAULT_ACCENT_COLOR)
-local text_color       = LoadColorSetting(EXT_KEY_TEXT_COLOR,       DEFAULT_TEXT_COLOR)
+DEFAULT_BACKGROUND_COLOR = 0x1E1E1EFF
+DEFAULT_ACCENT_COLOR     = 0x00AAFFFF
+DEFAULT_TEXT_COLOR       = 0xE0E0E0FF
+background_color = LoadColorSetting(EXT_KEY_BACKGROUND_COLOR, DEFAULT_BACKGROUND_COLOR)
+accent_color     = LoadColorSetting(EXT_KEY_ACCENT_COLOR,     DEFAULT_ACCENT_COLOR)
+text_color       = LoadColorSetting(EXT_KEY_TEXT_COLOR,       DEFAULT_TEXT_COLOR)
 
-local theme = {
+theme = {
     WindowBg             = 0x1E1E1EFF,
     Text                 = 0xE0E0E0FF,
     TextDisabled         = 0x808080FF,
@@ -256,14 +317,14 @@ local theme = {
     DragDropTarget       = 0x00AAFFFF,
 }
 
-local function OffsetColor(c, offset)
+function OffsetColor(c, offset)
     local cr = math.max(0, math.min(255, ((c >> 24) & 0xFF) + offset))
     local cg = math.max(0, math.min(255, ((c >> 16) & 0xFF) + offset))
     local cb = math.max(0, math.min(255, ((c >> 8)  & 0xFF) + offset))
     return (cr << 24) | (cg << 16) | (cb << 8) | 0xFF
 end
 
-local function RefreshThemeColors()
+function RefreshThemeColors()
     local bg = background_color
     local br = (bg >> 24) & 0xFF
     local bgc = (bg >> 16) & 0xFF
@@ -299,7 +360,7 @@ local function RefreshThemeColors()
     theme.DragDropTarget       = accent_color
 end
 
-local function SaveLayoutSettingsImmediate()
+function SaveLayoutSettingsImmediate()
     r.SetExtState(EXT_SECTION, EXT_KEY_GROUPS_PANEL_W,   tostring(layout.groups_panel_w), true)
     r.SetExtState(EXT_SECTION, EXT_KEY_ITEM_SPACING,     tostring(layout.item_spacing),   true)
     r.SetExtState(EXT_SECTION, EXT_KEY_SHOW_COLOR_MARKERS, tostring(show_color_markers),  true)
@@ -308,12 +369,12 @@ local function SaveLayoutSettingsImmediate()
     pending_save_layout = false
 end
 
-local function SaveLayoutSettings()
+function SaveLayoutSettings()
     pending_save_layout      = true
     pending_save_layout_time = r.time_precise()
 end
 
-local function SaveSettings()
+function SaveSettings()
     r.SetExtState(EXT_SECTION, EXT_KEY_LOCK_POSITION,    tostring(lock_position),       true)
     r.SetExtState(EXT_SECTION, EXT_KEY_NO_DOCKING,       tostring(no_docking),          true)
     r.SetExtState(EXT_SECTION, EXT_KEY_DELETE_PREV_REG,  tostring(delete_prev_regions), true)
@@ -322,23 +383,23 @@ local function SaveSettings()
     r.SetExtState(EXT_SECTION, EXT_KEY_CLEAR_TOOLTIP,    tostring(show_clear_tooltip),   true)
 end
 
-local function SaveAppearanceSettings()
+function SaveAppearanceSettings()
     r.SetExtState(EXT_SECTION, EXT_KEY_BACKGROUND_COLOR, tostring(background_color), true)
     r.SetExtState(EXT_SECTION, EXT_KEY_ACCENT_COLOR,     tostring(accent_color),     true)
     r.SetExtState(EXT_SECTION, EXT_KEY_TEXT_COLOR,       tostring(text_color),       true)
 end
 
-local function SaveWindowSize(w, h)
+function SaveWindowSize(w, h)
     r.SetExtState(EXT_SECTION, EXT_KEY_WINDOW_W, tostring(math.floor(w)), true)
     r.SetExtState(EXT_SECTION, EXT_KEY_WINDOW_H, tostring(math.floor(h)), true)
 end
 
-local function SaveWindowPosition(x, y)
+function SaveWindowPosition(x, y)
     r.SetExtState(EXT_SECTION, EXT_KEY_WINDOW_X, tostring(math.floor(x + 0.5)), true)
     r.SetExtState(EXT_SECTION, EXT_KEY_WINDOW_Y, tostring(math.floor(y + 0.5)), true)
 end
 
-local function SaveLastExportPath(path)
+function SaveLastExportPath(path)
     local dir = path:match("^(.*[/\\])")
     if dir then
         last_export_path = dir
@@ -346,9 +407,9 @@ local function SaveLastExportPath(path)
     end
 end
 
-local THEME_COLOR_COUNT = 24
+THEME_COLOR_COUNT = 24
 
-local function applyTheme()
+function applyTheme()
     local t = theme
     r.ImGui_PushStyleColor(ctx, r.ImGui_Col_WindowBg(),             t.WindowBg)
     r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Text(),                 t.Text)
@@ -376,7 +437,7 @@ local function applyTheme()
     r.ImGui_PushStyleColor(ctx, r.ImGui_Col_DragDropTarget(),       t.DragDropTarget)
 end
 
-local function popTheme()
+function popTheme()
     r.ImGui_PopStyleColor(ctx, THEME_COLOR_COUNT)
 end
 
@@ -384,11 +445,11 @@ end
 -- BEAT-BASED CONVERSION HELPERS
 ---------------------------------------------------------------------------
 
-local function TimeToBeatPos(time_sec)
+function TimeToBeatPos(time_sec)
     return r.TimeMap2_timeToQN(0, time_sec)
 end
 
-local function BeatPosToTime(qn)
+function BeatPosToTime(qn)
     return r.TimeMap2_QNToTime(0, qn)
 end
 
@@ -396,7 +457,7 @@ end
 -- ZOOM TO REGIONS
 ---------------------------------------------------------------------------
 
-local function ZoomToRegions()
+function ZoomToRegions()
     local num = r.CountProjectMarkers(0)
     if num == 0 then return end
 
@@ -427,7 +488,7 @@ end
 -- SERIALIZATION
 ---------------------------------------------------------------------------
 
-local function SerializeGroups()
+function SerializeGroups()
     local parts = {}
     for i, group in ipairs(groups) do
         local safe_name  = group.name:gsub("[|]", ""):gsub("\n", " ")
@@ -436,6 +497,13 @@ local function SerializeGroups()
             local safe_item_name = (item.name or "Template"):gsub("[|]", "")
             local item_color     = item.color or 0
             local safe_data      = item.data:gsub("\n", "\\n")
+            -- Preserve the remote identity in local storage. Existing v2
+            -- records have no suffix and remain readable.
+            if item.remote_id then
+                safe_data = safe_data .. "\30RTSRC\30" .. item.remote_id .. "\30" ..
+                    (item.remote_sha or "") .. "\30" .. (item.remote_base_hash or "") .. "\30" ..
+                    (item.remote_created_at or "") .. "\30" .. (item.remote_updated_at or "")
+            end
             table.insert(item_parts, safe_item_name .. "::" .. tostring(item_color) .. "::" .. safe_data)
         end
         local items_str = table.concat(item_parts, ";;")
@@ -444,7 +512,7 @@ local function SerializeGroups()
     return table.concat(parts, "||")
 end
 
-local function SerializeGroup(group)
+function SerializeGroup(group)
     local safe_name  = group.name:gsub("[|]", ""):gsub("\n", " ")
     local item_parts = {}
     for j, item in ipairs(group.items) do
@@ -457,14 +525,14 @@ local function SerializeGroup(group)
     return safe_name .. "::" .. items_str
 end
 
-local function SerializeItem(item)
+function SerializeItem(item)
     local safe_item_name = (item.name or "Template"):gsub("<SEP>", "")
     local item_color     = item.color or 0
     local safe_data      = item.data:gsub("\n", "\\n")
     return safe_item_name .. "<SEP>" .. tostring(item_color) .. "<SEP>" .. safe_data
 end
 
-local function DeserializeGroups(raw)
+function DeserializeGroups(raw)
     local result = {}
     if not raw or raw == "" then return result end
     for group_str in string.gmatch(raw .. "||", "(.-)||") do
@@ -475,11 +543,24 @@ local function DeserializeGroups(raw)
                 for item_str in string.gmatch(items_str .. ";;", "(.-);;") do
                     local iname, color_str, data = item_str:match("^(.-)::(%d+)::(.*)$")
                     if iname and color_str and data then
+                        local template_data, remote_id, remote_sha, remote_base_hash,
+                            remote_created_at, remote_updated_at =
+                            data:match("^(.-)\30RTSRC\30([^\30]*)\30([^\30]*)\30([^\30]*)\30([^\30]*)\30([^\30]*)$")
+                        if not template_data then
+                            template_data, remote_id, remote_sha, remote_base_hash =
+                                data:match("^(.-)\30RTSRC\30([^\30]*)\30([^\30]*)\30([^\30]*)$")
+                        end
+                        if template_data then data = template_data end
                         data = data:gsub("\\n", "\n")
                         table.insert(group.items, {
                             name  = iname,
                             color = tonumber(color_str) or 0,
-                            data  = data
+                            data  = data,
+                            remote_id        = remote_id,
+                            remote_sha       = remote_sha,
+                            remote_base_hash = remote_base_hash,
+                            remote_created_at = remote_created_at,
+                            remote_updated_at = remote_updated_at,
                         })
                     else
                         iname, data = item_str:match("^(.-)::(.*)$")
@@ -500,7 +581,7 @@ local function DeserializeGroups(raw)
     return result
 end
 
-local function DeserializeItem(raw)
+function DeserializeItem(raw)
     if not raw or raw == "" then return nil end
     local sep1_start, sep1_end = raw:find("<SEP>", 1, true)
     if not sep1_start then return nil end
@@ -520,14 +601,14 @@ local function DeserializeItem(raw)
     return nil
 end
 
-local function SaveGroups()
+function SaveGroups()
     local data = SerializeGroups()
     r.SetExtState(EXT_SECTION, EXT_KEY_DATA,         data,                       true)
     r.SetExtState(EXT_SECTION, EXT_KEY_ACTIVE_SLOT,  tostring(active_slot_index), true)
     r.SetExtState(EXT_SECTION, EXT_KEY_ACTIVE_GROUP, tostring(active_slot_group), true)
 end
 
-local function LoadGroups()
+function LoadGroups()
     local raw = r.GetExtState(EXT_SECTION, EXT_KEY_DATA)
     groups = DeserializeGroups(raw)
     if #groups == 0 then
@@ -535,7 +616,7 @@ local function LoadGroups()
     end
 end
 
-local function DeleteGroup(idx)
+function DeleteGroup(idx)
     if not idx or not groups[idx] then return end
     table.remove(groups, idx)
     if selected_group_index > #groups then selected_group_index = #groups end
@@ -553,7 +634,7 @@ local function DeleteGroup(idx)
     SaveGroups()
 end
 
-local function CreateFileContent(data_type, data)
+function CreateFileContent(data_type, data)
     local lines = {
         FILE_HEADER,
         "version=" .. FILE_VERSION,
@@ -566,7 +647,7 @@ local function CreateFileContent(data_type, data)
     return table.concat(lines, "\n")
 end
 
-local function ParseFileContent(content)
+function ParseFileContent(content)
     if not content or content == "" then return nil, "Empty file" end
     local lines = {}
     for line in content:gmatch("[^\r\n]+") do
@@ -595,7 +676,7 @@ local function ParseFileContent(content)
     return { version = version, data_type = data_type, data = data, format = format }
 end
 
-local function WriteFile(path, content)
+function WriteFile(path, content)
     local file, err = io.open(path, "w")
     if not file then return false, err end
     file:write(content)
@@ -603,7 +684,7 @@ local function WriteFile(path, content)
     return true
 end
 
-local function ReadFile(path)
+function ReadFile(path)
     local file, err = io.open(path, "r")
     if not file then return nil, err end
     local content = file:read("*all")
@@ -611,21 +692,21 @@ local function ReadFile(path)
     return content
 end
 
-local function GetExpectedFileExtension(data_type)
+function GetExpectedFileExtension(data_type)
     if data_type == "item" then return ITEM_FILE_EXTENSION end
     if data_type == "group" then return GROUP_FILE_EXTENSION end
     if data_type == "all"  then return LIBRARY_FILE_EXTENSION end
     return nil
 end
 
-local function GetImportTypeLabel(data_type)
+function GetImportTypeLabel(data_type)
     if data_type == "item" then return "Item" end
     if data_type == "group" then return "Group" end
     if data_type == "all"  then return "Library" end
     return "Unknown"
 end
 
-local function CleanFilename(name)
+function CleanFilename(name)
     if not name or name == "" then return "template" end
     local clean = name:gsub('[<>:"/\\|?*]', "")
     clean = clean:gsub("^%s+", ""):gsub("%s+$", "")
@@ -633,7 +714,7 @@ local function CleanFilename(name)
     return clean
 end
 
-local function GetSaveFilePath(default_name, extension)
+function GetSaveFilePath(default_name, extension)
     extension = extension or LIBRARY_FILE_EXTENSION
     local clean_name = CleanFilename(default_name)
     local retval, path = r.JS_Dialog_BrowseForSaveFile(
@@ -647,7 +728,7 @@ local function GetSaveFilePath(default_name, extension)
     return nil
 end
 
-local function GetOpenFilePath()
+function GetOpenFilePath()
     local retval, path = r.JS_Dialog_BrowseForOpenFiles(
         "Import Region Templates", last_export_path, "",
         "Region Templates (*.rgt;*.rgti;*.rgtg)\0*.rgt;*.rgti;*.rgtg\0All Files (*.*)\0*.*\0", false
@@ -656,7 +737,7 @@ local function GetOpenFilePath()
     return nil
 end
 
-local function ExportAll()
+function ExportAll()
     local path = GetSaveFilePath("preset_library", LIBRARY_FILE_EXTENSION)
     if not path then return end
     local data    = SerializeGroups()
@@ -670,7 +751,7 @@ local function ExportAll()
     end
 end
 
-local function ExportGroup(group_index)
+function ExportGroup(group_index)
     if not groups[group_index] then return end
     local group   = groups[group_index]
     local path    = GetSaveFilePath(group.name, GROUP_FILE_EXTENSION)
@@ -686,7 +767,7 @@ local function ExportGroup(group_index)
     end
 end
 
-local function ExportItem(group_index, item_index)
+function ExportItem(group_index, item_index)
     if not groups[group_index] then return end
     local group = groups[group_index]
     if not group.items[item_index] then return end
@@ -704,7 +785,7 @@ local function ExportItem(group_index, item_index)
     end
 end
 
-local function ImportFile()
+function ImportFile()
     local path = GetOpenFilePath()
     if not path then return end
     local content, err = ReadFile(path)
@@ -732,7 +813,7 @@ local function ImportFile()
     open_import_modal = true
 end
 
-local function GetImportDescription(data_type)
+function GetImportDescription(data_type)
     if data_type == "item" then
         return "Add to selected group"
     elseif data_type == "group" then
@@ -747,14 +828,14 @@ end
 -- OLD FORMAT MIGRATION (seconds → QN)
 ---------------------------------------------------------------------------
 
-local function IsDataBeatBased(data_str)
+function IsDataBeatBased(data_str)
     if data_str and data_str:match("^QN[123]:") then
         return true
     end
     return false
 end
 
-local function ConvertOldDataToQN(data_str)
+function ConvertOldDataToQN(data_str)
     if not data_str or data_str == "" then return data_str end
     if IsDataBeatBased(data_str) then return data_str end
     local new_parts = {}
@@ -777,7 +858,7 @@ local function ConvertOldDataToQN(data_str)
     return data_str
 end
 
-local function MigrateGroupsToQN()
+function MigrateGroupsToQN()
     local changed = false
     for _, group in ipairs(groups) do
         for _, item in ipairs(group.items) do
@@ -792,7 +873,7 @@ local function MigrateGroupsToQN()
     end
 end
 
-local function ApplyImport(mode)
+function ApplyImport(mode)
     if not import_data then return end
     local data_type    = import_data.data_type
     local data         = import_data.data
@@ -864,6 +945,759 @@ local function ApplyImport(mode)
     ShowToast("Import successful!")
 end
 
+---------------------------------------------------------------------------
+-- GITHUB TEMPLATE REPOSITORY
+-- The repository tree is the index: RegionTemplates/<Genre>/*.rgti.
+-- A Git blob SHA identifies the installed revision. Deleted remote files are
+-- deliberately never deleted from the user's local library.
+---------------------------------------------------------------------------
+
+function SaveGithubSettings()
+    r.SetExtState(EXT_SECTION, EXT_KEY_GITHUB_REPO, github_repo, true)
+    r.SetExtState(EXT_SECTION, EXT_KEY_GITHUB_BRANCH, github_branch, true)
+    r.SetExtState(EXT_SECTION, EXT_KEY_GITHUB_FOLDER, github_folder, true)
+end
+
+function ParseGithubRepository(value)
+    if not value then return nil, "Repository is empty" end
+    local owner, repo = value:match("^https?://github%.com/([%w%._%-]+)/([%w%._%-]+)/?$")
+    if not owner then owner, repo = value:match("^([%w%._%-]+)/([%w%._%-]+)$") end
+    if repo then repo = repo:gsub("%.git$", "") end
+    if not owner or not repo or owner == "" or repo == "" then
+        return nil, "Use https://github.com/owner/repository"
+    end
+    return owner, repo
+end
+
+function UrlEncode(value)
+    return (value:gsub("([^%w%-%._~/])", function(c)
+        return string.format("%%%02X", string.byte(c))
+    end))
+end
+
+-- A small JSON reader is enough for GitHub's tree response and keeps the
+-- script dependency-free.
+function JsonDecode(text)
+    local pos, len = 1, #text
+    local parse_value
+    local function skip_space()
+        while pos <= len and text:sub(pos, pos):match("%s") do pos = pos + 1 end
+    end
+    local function parse_string()
+        if text:sub(pos, pos) ~= '"' then error("JSON string expected") end
+        pos = pos + 1
+        local out = {}
+        while pos <= len do
+            local c = text:sub(pos, pos)
+            if c == '"' then pos = pos + 1; return table.concat(out) end
+            if c == "\\" then
+                pos = pos + 1
+                local esc = text:sub(pos, pos)
+                local map = { ['"'] = '"', ['\\'] = '\\', ['/'] = '/', b = '\b', f = '\f', n = '\n', r = '\r', t = '\t' }
+                if esc == "u" then
+                    local hex = text:sub(pos + 1, pos + 4)
+                    local code = tonumber(hex, 16)
+                    if not code then error("Invalid JSON unicode escape") end
+                    if utf8 and utf8.char then table.insert(out, utf8.char(code)) else table.insert(out, "?") end
+                    pos = pos + 5
+                elseif map[esc] then
+                    table.insert(out, map[esc]); pos = pos + 1
+                else
+                    error("Invalid JSON escape")
+                end
+            else
+                table.insert(out, c); pos = pos + 1
+            end
+        end
+        error("Unclosed JSON string")
+    end
+    local function parse_array()
+        pos = pos + 1; skip_space()
+        local out = {}
+        if text:sub(pos, pos) == "]" then pos = pos + 1; return out end
+        while true do
+            table.insert(out, parse_value()); skip_space()
+            local c = text:sub(pos, pos)
+            if c == "]" then pos = pos + 1; return out end
+            if c ~= "," then error("JSON array separator expected") end
+            pos = pos + 1; skip_space()
+        end
+    end
+    local function parse_object()
+        pos = pos + 1; skip_space()
+        local out = {}
+        if text:sub(pos, pos) == "}" then pos = pos + 1; return out end
+        while true do
+            local key = parse_string(); skip_space()
+            if text:sub(pos, pos) ~= ":" then error("JSON object colon expected") end
+            pos = pos + 1; skip_space(); out[key] = parse_value(); skip_space()
+            local c = text:sub(pos, pos)
+            if c == "}" then pos = pos + 1; return out end
+            if c ~= "," then error("JSON object separator expected") end
+            pos = pos + 1; skip_space()
+        end
+    end
+    parse_value = function()
+        skip_space()
+        local c = text:sub(pos, pos)
+        if c == '"' then return parse_string() end
+        if c == "{" then return parse_object() end
+        if c == "[" then return parse_array() end
+        local literal = text:sub(pos)
+        if literal:sub(1, 4) == "true" then pos = pos + 4; return true end
+        if literal:sub(1, 5) == "false" then pos = pos + 5; return false end
+        if literal:sub(1, 4) == "null" then pos = pos + 4; return nil end
+        local number = literal:match("^%-?%d+%.?%d*[eE]?[%+%-]?%d*")
+        if number and number ~= "" then pos = pos + #number; return tonumber(number) end
+        error("Invalid JSON value")
+    end
+    local ok, value = pcall(function()
+        local result = parse_value(); skip_space()
+        if pos <= len then error("Unexpected JSON content") end
+        return result
+    end)
+    if not ok then return nil, tostring(value) end
+    return value
+end
+
+function ShellQuote(value)
+    if r.GetOS():match("Win") then return '"' .. value:gsub('"', '""') .. '"' end
+    return "'" .. value:gsub("'", "'\\''") .. "'"
+end
+
+native_http_counter = 0
+remote_net = {native_ok = 0, native_failed = 0, fallback_ok = 0, last = "Not checked", jobs = {}}
+
+function StopRemoteJobs()
+    local cancel, release = r.RegionTemplates_HttpCancel, r.RegionTemplates_HttpRelease
+    for job in pairs(remote_net.jobs) do
+        if cancel then cancel(job) end
+        if release then release(job) end
+    end
+    remote_net.jobs = {}
+end
+
+function StartRemoteTask(fn)
+    if remote_net.task then return end
+    remote_net.started = r.time_precise()
+    remote_net.task = coroutine.create(fn)
+end
+
+function StepRemoteTask()
+    if not remote_net.task then return end
+    local ok, err = coroutine.resume(remote_net.task)
+    if not ok or coroutine.status(remote_net.task) == "dead" then
+        remote_net.task = nil
+        remote_net.elapsed = r.time_precise() - remote_net.started
+        if not ok then
+            StopRemoteJobs()
+            remote_net.last = "Error: " .. tostring(err)
+            ShowToast("Sync failed — see About", true)
+        end
+    end
+end
+
+r.atexit(StopRemoteJobs)
+
+function NativeApiFunction(name)
+    local fn = r[name]
+    if fn then return fn end
+    if r.APIExists and r.APIExists(name) then
+        return r[name]
+    end
+    return nil
+end
+
+function NativeHttpAvailable()
+    local start_fn = NativeApiFunction("RegionTemplates_HttpStart")
+    local wait_fn = NativeApiFunction("RegionTemplates_HttpWait")
+    local error_fn = NativeApiFunction("RegionTemplates_HttpError")
+    local release_fn = NativeApiFunction("RegionTemplates_HttpRelease")
+    local poll_fn = NativeApiFunction("RegionTemplates_HttpPoll")
+    return start_fn and wait_fn and error_fn and release_fn and poll_fn
+end
+
+function NativeTempPath()
+    native_http_counter = native_http_counter + 1
+    local resource_path = r.GetResourcePath and r.GetResourcePath() or SCRIPT_PATH
+    return resource_path .. "/Data/RegionTemplatesCache/rt_" ..
+        tostring(os.time()) .. "_" .. tostring(native_http_counter) .. ".tmp"
+end
+
+function NativeStartToFile(url)
+    if not NativeHttpAvailable() then return nil, nil, false end
+    local start_fn = NativeApiFunction("RegionTemplates_HttpStart")
+    local target = NativeTempPath()
+    local job = start_fn(url, target)
+    if not job or job < 0 then
+        remote_net.native_failed = remote_net.native_failed + 1
+        remote_net.last = "C++ start failed"
+        return nil, "Native Region Templates network module could not start", true
+    end
+    remote_net.jobs[job] = true
+    return job, target, true
+end
+
+function NativeFinishFile(job, target)
+    local wait_fn = NativeApiFunction("RegionTemplates_HttpWait")
+    local error_fn = NativeApiFunction("RegionTemplates_HttpError")
+    local release_fn = NativeApiFunction("RegionTemplates_HttpRelease")
+    local status = r.RegionTemplates_HttpPoll(job)
+    while status == 0 do
+        if coroutine.isyieldable() then coroutine.yield() else status = wait_fn(job); break end
+        status = r.RegionTemplates_HttpPoll(job)
+    end
+    remote_net.jobs[job] = nil
+    if status ~= 1 then
+        local message = error_fn(job)
+        -- REAPER exposes a char* return from APIvararg as light userdata on
+        -- some builds. It is not a Lua string and must never reach ImGui or
+        -- string concatenation.
+        if type(message) ~= "string" or message == "" then
+            message = "Native C++ download failed"
+        end
+        release_fn(job)
+        remote_net.native_failed = remote_net.native_failed + 1
+        remote_net.last = "C++ error: " .. message
+        return nil, message, true
+    end
+
+    local file = io.open(target, "rb")
+    if not file then
+        release_fn(job)
+        remote_net.native_failed = remote_net.native_failed + 1
+        remote_net.last = "C++: cannot read downloaded file"
+        return nil, "Native download completed without a readable file", true
+    end
+    local body = file:read("*a")
+    file:close()
+    os.remove(target)
+    release_fn(job)
+    remote_net.native_ok = remote_net.native_ok + 1
+    remote_net.last = "C++ native: OK"
+    return body, nil, true
+end
+
+function NativeHttpGet(url)
+    local job, target, available = NativeStartToFile(url)
+    if not available then return nil, nil, false end
+    if not job then return nil, target, true end
+    return NativeFinishFile(job, target)
+end
+
+function HttpGet(url)
+    local native_body, native_error, native_available = NativeHttpGet(url)
+    if native_available and native_body then return native_body end
+    -- An installed native module must report its own failure, never silently
+    -- hide it behind an external curl executable.
+    if native_available then return nil, native_error end
+    if not r.ExecProcess then return nil, "Requires REAPER 7 (ExecProcess)" end
+    local response = r.ExecProcess("curl -fsSL --connect-timeout 8 --max-time 25 " .. ShellQuote(url), 30000)
+    if not response or response == "" then return nil, "Unable to download from GitHub" end
+    -- ExecProcess returns the process exit code, a newline, and stdout.
+    -- Remove that prefix before decoding GitHub's JSON response.
+    local code, body = response:match("^([%-]?%d+)\r?\n(.*)$")
+    if not code then return nil, "Unexpected response from curl" end
+    if tonumber(code) ~= 0 then return nil, body ~= "" and body or "GitHub request failed" end
+    remote_net.fallback_ok = remote_net.fallback_ok + 1
+    remote_net.last = "External curl: OK (C++ unavailable)"
+    return body
+end
+
+function ItemFingerprint(item)
+    local value = (item.name or "") .. "\31" .. tostring(item.color or 0) .. "\31" .. (item.data or "")
+    local hash = 0
+    for i = 1, #value do hash = (hash * 31 + value:byte(i)) % 2147483647 end
+    return tostring(hash)
+end
+
+function FindRemoteItem(remote_id)
+    for _, group in ipairs(groups) do
+        for _, item in ipairs(group.items) do
+            if item.remote_id == remote_id then return group, item end
+        end
+    end
+    return nil, nil
+end
+
+function GetOrCreateGenreGroup(genre)
+    for _, group in ipairs(groups) do
+        if group.name == genre then return group end
+    end
+    local group = { name = genre, items = {} }
+    table.insert(groups, group)
+    return group
+end
+
+function SetRemoteItem(target, source)
+    target.name = source.name
+    target.color = source.color
+    target.data = source.data
+    target.remote_id = source.remote_id
+    target.remote_sha = source.remote_sha
+    target.remote_base_hash = ItemFingerprint(source)
+    target.remote_created_at = source.remote_created_at
+    target.remote_updated_at = source.remote_updated_at
+end
+
+function ParseRemoteItemContent(content, sha, remote_id, created_at, updated_at)
+    local parsed, parse_err = ParseFileContent(content)
+    if not parsed or parsed.data_type ~= "item" then
+        return nil, parse_err or "Only .rgti item templates can be synchronized"
+    end
+    local item = DeserializeItem(parsed.data)
+    if not item then return nil, "Invalid item data" end
+    if parsed.format ~= "qn" and item.data and not IsDataBeatBased(item.data) then
+        item.data = ConvertOldDataToQN(item.data)
+    end
+    item.remote_id = remote_id
+    item.remote_sha = sha
+    item.remote_base_hash = ItemFingerprint(item)
+    item.remote_created_at = created_at
+    item.remote_updated_at = updated_at
+    return item
+end
+
+function ReadRemoteItem(owner, repo, branch, path, sha, remote_id, created_at, updated_at)
+    local raw_url = "https://raw.githubusercontent.com/" .. owner .. "/" .. repo .. "/" ..
+        UrlEncode(branch) .. "/" .. UrlEncode(path)
+    local content, err = HttpGet(raw_url)
+    if not content then return nil, err end
+    return ParseRemoteItemContent(content, sha, remote_id, created_at, updated_at)
+end
+
+function MakeRemoteCatalogEntry(owner, repo, branch, root, raw_entry, default_type)
+    if type(raw_entry) ~= "table" then return nil end
+    local path = tostring(raw_entry.path or "")
+    if path == "" then return nil end
+    local prefix = root .. "/"
+    if path:sub(1, #prefix) ~= prefix then path = prefix .. path:gsub("^/+", "") end
+    local relative = path:sub(1, #prefix) == prefix and path:sub(#prefix + 1) or nil
+    local genre = raw_entry.genre or (relative and relative:match("^([^/]+)/.+$"))
+    local entry_type = raw_entry.type or default_type or "blob"
+    if entry_type ~= "blob" or not genre or not path:lower():match("%.rgti$") then return nil end
+    if path:find("[|\30]", 1) then return nil end
+    local remote_id = owner .. "/" .. repo .. ":" .. branch .. ":" .. path
+    local _, existing = FindRemoteItem(remote_id)
+    local sha = tostring(raw_entry.sha or raw_entry.hash or "")
+    local status = "Installed"
+    if not existing then
+        status = "New"
+    elseif sha ~= "" and existing.remote_sha ~= sha then
+        status = existing.remote_base_hash == ItemFingerprint(existing) and "Update" or "Local changes"
+    end
+    return {
+        genre = genre, path = path, sha = sha, remote_id = remote_id,
+        name = raw_entry.name or path:match("([^/]+)$") or path, status = status,
+        installed = existing ~= nil,
+        created_at = raw_entry.created_at or raw_entry.created or "",
+        updated_at = raw_entry.updated_at or raw_entry.modified or raw_entry.updated or "",
+        size = tonumber(raw_entry.size) or 0,
+    }
+end
+
+function SetRemoteCatalog(catalog)
+    table.sort(catalog, function(a, b)
+        if a.genre == b.genre then return a.name:lower() < b.name:lower() end
+        return a.genre:lower() < b.genre:lower()
+    end)
+    remote_catalog, remote_selection = catalog, {}
+    remote_folder_updated_at = {}
+    for _, entry in ipairs(catalog) do
+        local updated_at = entry.updated_at or ""
+        local current = remote_folder_updated_at[entry.genre]
+        if updated_at ~= "" and (not current or updated_at > current) then
+            remote_folder_updated_at[entry.genre] = updated_at
+        end
+    end
+    local catalog_index = 1
+    while catalog_index <= #catalog do
+        local genre = catalog[catalog_index].genre
+        local last = catalog_index
+        while last <= #catalog and catalog[last].genre == genre do
+            last = last + 1
+        end
+        -- Never preselect remote folders. The user must explicitly choose
+        -- which genres to import each time the Online Library is opened.
+        remote_selection[genre] = false
+        catalog_index = last
+    end
+end
+
+function BuildCatalogFromIndex(owner, repo, branch, root, index_data)
+    if type(index_data) ~= "table" then return nil end
+    local entries = index_data.templates or index_data.items or index_data
+    if type(entries) ~= "table" then return nil end
+    local catalog = {}
+    for _, raw_entry in ipairs(entries) do
+        local entry = MakeRemoteCatalogEntry(owner, repo, branch, root, raw_entry, "blob")
+        if entry then table.insert(catalog, entry) end
+    end
+    return catalog
+end
+
+function BuildCatalogFromTree(owner, repo, branch, root, tree_data)
+    if type(tree_data) ~= "table" or type(tree_data.tree) ~= "table" or tree_data.truncated then return nil end
+    local catalog = {}
+    for _, raw_entry in ipairs(tree_data.tree) do
+        local entry = MakeRemoteCatalogEntry(owner, repo, branch, root, raw_entry, raw_entry.type)
+        if entry then table.insert(catalog, entry) end
+    end
+    return catalog
+end
+
+function FetchGitHubTemplateCatalog()
+    local owner, repo_or_err = ParseGithubRepository(github_repo)
+    if not owner then
+        github_sync_message, github_sync_is_error = repo_or_err, true
+        ShowToast(repo_or_err, true)
+        return
+    end
+    local repo = repo_or_err
+    if not github_branch:match("^[%w%._%-%/]+$") then
+        ShowToast("Invalid GitHub branch", true); return
+    end
+    local root = github_folder:gsub("\\", "/"):gsub("^/+", ""):gsub("/+$", "")
+    if root == "" or root:find("%.%.", 1, true) then
+        ShowToast("Invalid templates folder", true); return
+    end
+
+    -- ReaPack-style static manifest: one small request regardless of the
+    -- number of folders and templates in the repository.
+    -- Add a timestamp so the CDN cannot hand back an older manifest after a
+    -- GitHub Action has just regenerated it.
+    local cache_buster = tostring(os.time())
+    local index_url = "https://raw.githubusercontent.com/" .. owner .. "/" .. repo .. "/" ..
+        UrlEncode(github_branch) .. "/" .. UrlEncode(root .. "/index.json") .. "?v=" .. cache_buster
+    local index_response = HttpGet(index_url)
+    -- Some networks block raw.githubusercontent.com but allow GitHub's own
+    -- raw endpoint, so try that endpoint before falling back to the API tree.
+    if not index_response then
+        local github_raw_url = "https://github.com/" .. owner .. "/" .. repo .. "/raw/refs/heads/" ..
+            UrlEncode(github_branch) .. "/" .. UrlEncode(root .. "/index.json") .. "?v=" .. cache_buster
+        index_response = HttpGet(github_raw_url)
+    end
+    local catalog = nil
+    if index_response then
+        local index_data = JsonDecode(index_response)
+        catalog = BuildCatalogFromIndex(owner, repo, github_branch, root, index_data)
+    end
+
+    -- Compatibility fallback for repositories that do not have index.json yet.
+    if not catalog then
+        local tree_url = "https://api.github.com/repos/" .. owner .. "/" .. repo .. "/git/trees/" ..
+            UrlEncode(github_branch) .. "?recursive=1"
+        local response, fetch_err = HttpGet(tree_url)
+        if not response then ShowToast(fetch_err or "Unable to download GitHub index", true); return end
+        local tree, json_err = JsonDecode(response)
+        catalog = BuildCatalogFromTree(owner, repo, github_branch, root, tree)
+        if not catalog then
+            if tree and tree.truncated then
+                ShowToast("GitHub index is too large; add RegionTemplates/index.json", true)
+            else
+                ShowToast("Invalid GitHub response: " .. (json_err or "no tree"), true)
+            end
+            return
+        end
+    end
+
+    SetRemoteCatalog(catalog)
+    open_remote_catalog_modal = true
+    github_sync_message = ""
+    github_sync_is_error = false
+end
+
+function ImportSelectedGitHubTemplates()
+    local owner, repo = ParseGithubRepository(github_repo)
+    if not owner then ShowToast(repo, true); return end
+    local found, added, updated, renamed, skipped, failures = {}, 0, 0, 0, 0, 0
+    local native_batch = NativeHttpAvailable()
+    local pending_downloads = {}
+
+    local function ApplyRemoteItem(entry, existing, remote_item)
+        if not remote_item then
+            failures = failures + 1
+        elseif not existing then
+            remote_item.name = GetRemoteTemplateName(entry)
+            table.insert(GetOrCreateGenreGroup(entry.genre).items, remote_item)
+            added = added + 1
+        elseif existing.remote_base_hash == ItemFingerprint(existing) then
+            remote_item.name = GetRemoteTemplateName(entry)
+            SetRemoteItem(existing, remote_item)
+            updated = updated + 1
+        else
+            table.insert(pending_remote_updates, { item = existing, remote = remote_item, path = entry.path })
+            skipped = skipped + 1
+        end
+    end
+
+    for _, entry in ipairs(remote_catalog) do
+        found[entry.remote_id] = true
+        if remote_selection[entry.genre] then
+            local _, existing = FindRemoteItem(entry.remote_id)
+            if existing and existing.remote_sha == entry.sha and
+                existing.remote_base_hash == ItemFingerprint(existing) then
+                local canonical_name = GetRemoteTemplateName(entry)
+                if existing.name ~= canonical_name then
+                    existing.name = canonical_name
+                    existing.remote_base_hash = ItemFingerprint(existing)
+                    renamed = renamed + 1
+                end
+            end
+            if not existing or existing.remote_sha ~= entry.sha then
+                if native_batch then
+                    local raw_url = "https://raw.githubusercontent.com/" .. owner .. "/" .. repo .. "/" ..
+                        UrlEncode(github_branch) .. "/" .. UrlEncode(entry.path)
+                    local job, target = NativeStartToFile(raw_url)
+                    if job then
+                        table.insert(pending_downloads, {
+                            entry = entry, existing = existing, job = job, target = target,
+                        })
+                    else
+                        failures = failures + 1
+                    end
+                else
+                    local remote_item = ReadRemoteItem(owner, repo, github_branch,
+                        entry.path, entry.sha, entry.remote_id, entry.created_at, entry.updated_at)
+                    ApplyRemoteItem(entry, existing, remote_item)
+                end
+            end
+        end
+    end
+
+    -- All native downloads are started before waiting, so the six C++ workers
+    -- can fetch changed templates concurrently.
+    for _, download in ipairs(pending_downloads) do
+        local content, item_err = NativeFinishFile(download.job, download.target)
+        -- Downloads yield to the UI; resolve the current item after resuming.
+        local _, current_existing = FindRemoteItem(download.entry.remote_id)
+        download.existing = current_existing
+        local remote_item = nil
+        if content then
+            remote_item = ParseRemoteItemContent(content, download.entry.sha,
+                download.entry.remote_id, download.entry.created_at, download.entry.updated_at)
+        end
+        if not remote_item and item_err then
+            failures = failures + 1
+        else
+            ApplyRemoteItem(download.entry, download.existing, remote_item)
+        end
+    end
+    local removed = 0
+    local root = github_folder:gsub("\\", "/"):gsub("^/+", ""):gsub("/+$", "")
+    local source_prefix = owner .. "/" .. repo .. ":" .. github_branch .. ":" .. root .. "/"
+    for _, group in ipairs(groups) do
+        for _, item in ipairs(group.items) do
+            if item.remote_id and item.remote_id:sub(1, #source_prefix) == source_prefix and not found[item.remote_id] then
+                removed = removed + 1
+            end
+        end
+    end
+    if added > 0 or updated > 0 or renamed > 0 then SaveGroups() end
+    github_last_sync = os.time()
+    r.SetExtState(EXT_SECTION, EXT_KEY_GITHUB_LAST_SYNC, tostring(github_last_sync), true)
+    github_sync_message = string.format("Added %d, updated %d, renamed %d, local changes %d, source removed %d",
+        added, updated, renamed, skipped, removed)
+    if failures > 0 then github_sync_message = github_sync_message .. ", failed " .. failures end
+    github_sync_is_error = failures > 0
+    local sync_toast = github_sync_is_error and "Sync failed" or
+        ((added > 0 or updated > 0 or renamed > 0) and "Templates updated" or "Already up to date")
+    ShowToast(sync_toast, github_sync_is_error)
+    if #pending_remote_updates > 0 then open_remote_update_modal = true end
+end
+
+function SetAllRemoteSelection(selected)
+    local seen_genres = {}
+    for _, entry in ipairs(remote_catalog) do
+        if not seen_genres[entry.genre] then
+            remote_selection[entry.genre] = selected
+            seen_genres[entry.genre] = true
+        end
+    end
+end
+
+function DrawRemoteSelectionContextMenu(id)
+    if r.ImGui_BeginPopupContextItem(ctx, id) then
+        if r.ImGui_MenuItem(ctx, "Select All") then
+            SetAllRemoteSelection(true)
+        end
+        if r.ImGui_MenuItem(ctx, "Unselect All") then
+            SetAllRemoteSelection(false)
+        end
+        r.ImGui_EndPopup(ctx)
+    end
+end
+
+function DrawRemoteLibraryAbout()
+    r.ImGui_TextColored(ctx, theme.CheckMark, "About Online Library")
+    r.ImGui_Separator(ctx)
+    r.ImGui_TextWrapped(ctx, "Online Library synchronizes with the GitHub repository.")
+    r.ImGui_TextWrapped(ctx, "New and updated templates appear as the repository is updated.")
+    r.ImGui_TextWrapped(ctx, "Folders organize templates by category.")
+    r.ImGui_Spacing(ctx)
+    r.ImGui_TextColored(ctx, theme.Text, "White template names are installed locally.")
+    r.ImGui_TextColored(ctx, theme.TextDisabled, "Gray template names are not installed yet.")
+    r.ImGui_Spacing(ctx)
+    r.ImGui_Separator(ctx)
+    r.ImGui_TextColored(ctx, theme.CheckMark, "Share your template")
+    r.ImGui_TextWrapped(ctx, "You can upload your own REAPER templates here if you would like to share them with other users.")
+    r.ImGui_TextWrapped(ctx, "Uploaded templates are reviewed first and may then be published in the Online Library. This helps us build a larger and more useful template collection.")
+    r.ImGui_Spacing(ctx)
+    if r.ImGui_Button(ctx, "Upload your template", -1, 0) then
+        if r.CF_ShellExecute then
+            r.CF_ShellExecute(TEMPLATE_UPLOAD_REQUEST_URL)
+        elseif r.ExecProcess then
+            r.ExecProcess('cmd.exe /c start "" "' .. TEMPLATE_UPLOAD_REQUEST_URL .. '"', 0)
+        end
+    end
+    if r.ImGui_IsItemHovered(ctx) and r.ImGui_SetMouseCursor and r.ImGui_MouseCursor_Hand then
+        r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_Hand())
+    end
+    r.ImGui_TextDisabled(ctx, "Dropbox upload page")
+    r.ImGui_Spacing(ctx)
+    r.ImGui_TextColored(ctx, theme.CheckMark, "How to name your template")
+    r.ImGui_TextWrapped(ctx, "For a template made for a specific track, include the artist, track title, and BPM in the filename.")
+    r.ImGui_TextDisabled(ctx, "Example: Leandro Da Silva, Dario Trapani - Because Of You - 124 BPM")
+    r.ImGui_TextWrapped(ctx, "For a general genre template, include the genre and the BPM it was designed for.")
+    r.ImGui_TextDisabled(ctx, "Examples: Deep House - 124 BPM")
+    r.ImGui_TextDisabled(ctx, "          Techno - 132 BPM")
+    r.ImGui_TextWrapped(ctx, "This keeps the online library organized and makes templates easier to find and use.")
+end
+
+function DrawGithubModals()
+    local modal_flags = r.ImGui_WindowFlags_AlwaysAutoResize()
+    if open_remote_catalog_modal then
+        r.ImGui_OpenPopup(ctx, "Online Library")
+        open_remote_catalog_modal = false
+        remote_about_open = false
+    end
+    if github_window_w and github_window_h then
+        r.ImGui_SetNextWindowSize(ctx, github_window_w, github_window_h, r.ImGui_Cond_Appearing())
+    else
+        local catalog_width, catalog_height = 260, 240
+        for _, entry in ipairs(remote_catalog) do
+            local text_width = r.ImGui_CalcTextSize(ctx, entry.genre)
+            if text_width + 58 > catalog_width then catalog_width = text_width + 58 end
+        end
+        catalog_width = math.min(520, catalog_width)
+        r.ImGui_SetNextWindowSize(ctx, catalog_width, catalog_height, r.ImGui_Cond_Appearing())
+    end
+    r.ImGui_SetNextWindowSizeConstraints(ctx, 260, 240, 1100, 900)
+    if r.ImGui_BeginPopupModal(ctx, "Online Library", true, 0) then
+        local current_w, current_h = r.ImGui_GetWindowSize(ctx)
+        if current_w ~= github_window_w or current_h ~= github_window_h then
+            github_window_w, github_window_h = current_w, current_h
+            r.SetExtState(EXT_SECTION, EXT_KEY_GITHUB_WINDOW_W, tostring(math.floor(current_w)), true)
+            r.SetExtState(EXT_SECTION, EXT_KEY_GITHUB_WINDOW_H, tostring(math.floor(current_h)), true)
+        end
+        local _, available_h = r.ImGui_GetContentRegionAvail(ctx)
+        local native_sync_enabled = NativeHttpAvailable() and remote_net.last == "C++ native: OK"
+        local list_height = math.max(120, available_h - 26)
+        r.ImGui_PushStyleVar(ctx, r.ImGui_StyleVar_ScrollbarSize(), 10)
+        if remote_about_open then
+            if r.ImGui_BeginChild(ctx, "GitHubLibraryAbout", -1, list_height, r.ImGui_ChildFlags_Borders()) then
+                DrawRemoteLibraryAbout()
+                r.ImGui_EndChild(ctx)
+            end
+        else
+        if r.ImGui_BeginChild(ctx, "GitHubTemplateList", -1, list_height, r.ImGui_ChildFlags_Borders()) then
+            local index = 1
+            while index <= #remote_catalog do
+                local genre = remote_catalog[index].genre
+                local last = index
+                while last <= #remote_catalog and remote_catalog[last].genre == genre do
+                    last = last + 1
+                end
+                local all_selected = remote_selection[genre] == true
+                local row_x = r.ImGui_GetCursorPosX(ctx)
+                local row_w = r.ImGui_GetContentRegionAvail(ctx)
+                local folder_screen_x, folder_screen_y = r.ImGui_GetCursorScreenPos(ctx)
+                r.ImGui_PushFont(ctx, font, FONT_SIZE + 1)
+                r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Text(), theme.CheckMark)
+                local folder_open = r.ImGui_TreeNode(ctx, "    " .. genre .. "##genre_" .. index)
+                r.ImGui_PopStyleColor(ctx)
+                r.ImGui_PopFont(ctx)
+                DrawFolderIcon(r.ImGui_GetWindowDrawList(ctx), folder_screen_x + 16, folder_screen_y + 2, theme.CheckMark)
+                DrawRemoteSelectionContextMenu("remote_folder_ctx_" .. index)
+                r.ImGui_SameLine(ctx, 0, 0)
+                r.ImGui_SetCursorPosX(ctx, row_x + row_w - 18)
+                local marker_color = all_selected and theme.CheckMark or theme.TextDisabled
+                local folder_date = GetRemoteFolderDateLabel(genre)
+                local folder_date_width = r.ImGui_CalcTextSize(ctx, folder_date)
+                r.ImGui_SetCursorPosX(ctx, row_x + row_w - 18 - folder_date_width - 14)
+                r.ImGui_TextDisabled(ctx, folder_date)
+                r.ImGui_SameLine(ctx, 0, 8)
+                local marker_x, marker_y = r.ImGui_GetCursorScreenPos(ctx)
+                local marker_h = r.ImGui_GetFrameHeight(ctx)
+                local changed = r.ImGui_InvisibleButton(ctx, "##genre_select_" .. index, 18, marker_h)
+                local draw_list = r.ImGui_GetWindowDrawList(ctx)
+                r.ImGui_DrawList_AddCircleFilled(draw_list, marker_x + 9, marker_y + marker_h / 2 - 2, 5.5, marker_color)
+                if changed then
+                    remote_selection[genre] = not all_selected
+                end
+                if folder_open then
+                    for i = index, last - 1 do
+                        local entry = remote_catalog[i]
+                        local display_name = GetRemoteTemplateName(entry)
+                        local item_color = entry.installed and theme.Text or theme.TextDisabled
+                        r.ImGui_TextColored(ctx, item_color, display_name)
+                    end
+                    r.ImGui_TreePop(ctx)
+                end
+                index = last
+            end
+            r.ImGui_EndChild(ctx)
+        end
+        end
+        r.ImGui_PopStyleVar(ctx)
+        local button_w = (r.ImGui_GetContentRegionAvail(ctx) - 6) / 2
+        if native_sync_enabled then
+            r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Text(), theme.CheckMark)
+        end
+        r.ImGui_BeginDisabled(ctx, remote_net.task ~= nil)
+        local import_clicked = r.ImGui_Button(ctx, "Import", button_w, 0)
+        r.ImGui_EndDisabled(ctx)
+        r.ImGui_SameLine(ctx, 0, 6)
+        local about_clicked = r.ImGui_Button(ctx, "About", button_w, 0)
+        if native_sync_enabled then
+            r.ImGui_PopStyleColor(ctx)
+        end
+        if about_clicked then
+            remote_about_open = not remote_about_open
+        end
+        if import_clicked then
+            StartRemoteTask(ImportSelectedGitHubTemplates); r.ImGui_CloseCurrentPopup(ctx)
+        end
+        r.ImGui_EndPopup(ctx)
+    end
+    if open_remote_update_modal then
+        r.ImGui_OpenPopup(ctx, "Remote template changed")
+        open_remote_update_modal = false
+    end
+    if r.ImGui_BeginPopupModal(ctx, "Remote template changed", true, modal_flags) then
+        local update = pending_remote_updates[1]
+        if update then
+            r.ImGui_TextWrapped(ctx, "Local changes found in: " .. update.path)
+            r.ImGui_TextDisabled(ctx, "Choose whether the GitHub version replaces your local edits.")
+            r.ImGui_Separator(ctx)
+            if r.ImGui_Button(ctx, "Use GitHub version", 160, 0) then
+                SetRemoteItem(update.item, update.remote); SaveGroups(); table.remove(pending_remote_updates, 1)
+            end
+            r.ImGui_SameLine(ctx)
+            if r.ImGui_Button(ctx, "Keep local version", 160, 0) then
+                update.item.remote_sha = update.remote.remote_sha
+                update.item.remote_created_at = update.remote.remote_created_at
+                update.item.remote_updated_at = update.remote.remote_updated_at
+                SaveGroups(); table.remove(pending_remote_updates, 1)
+            end
+            if #pending_remote_updates == 0 then r.ImGui_CloseCurrentPopup(ctx) end
+        else
+            r.ImGui_CloseCurrentPopup(ctx)
+        end
+        r.ImGui_EndPopup(ctx)
+    end
+end
+
 LoadGroups()
 MigrateGroupsToQN()
 
@@ -871,7 +1705,7 @@ MigrateGroupsToQN()
 -- GET CURRENT REGIONS AND RULER LANES (saves as QN)
 ---------------------------------------------------------------------------
 
-local function GetCurrentRulerLaneCount()
+function GetCurrentRulerLaneCount()
     local info_ok, info_count = false, nil
     if r.GetSetProjectInfo then
         info_ok, info_count = pcall(r.GetSetProjectInfo, 0, "RULER_LANE_COUNT", 0, false)
@@ -898,7 +1732,7 @@ local function GetCurrentRulerLaneCount()
     return nil
 end
 
-local function GetRulerLaneTypes(lane_count)
+function GetRulerLaneTypes(lane_count)
     if not lane_count or lane_count <= 0 or not r.GetSetProjectInfo_String then return nil end
 
     local lane_types = {}
@@ -915,7 +1749,7 @@ local function GetRulerLaneTypes(lane_count)
     return table.concat(lane_types, ",")
 end
 
-local function SetRulerLaneCount(target_count, lane_types_str)
+function SetRulerLaneCount(target_count, lane_types_str)
     if target_count == nil or target_count < 0 then return end
     target_count = math.floor(target_count + 0.5)
 
@@ -964,7 +1798,7 @@ local function SetRulerLaneCount(target_count, lane_types_str)
     end
 end
 
-local function GetRegionLaneNumber(markrgn_index_number)
+function GetRegionLaneNumber(markrgn_index_number)
     if not r.GetRegionOrMarker or not r.GetRegionOrMarkerInfo_Value then return 0 end
 
     -- EnumProjectMarkers3 returns the displayed marker/region number, while
@@ -983,7 +1817,7 @@ local function GetRegionLaneNumber(markrgn_index_number)
     return math.max(0, math.floor(lane_number + 0.5))
 end
 
-local function GetCurrentRegions()
+function GetCurrentRegions()
     local num, _, num_regions = r.CountProjectMarkers(0)
     local lane_count = GetCurrentRulerLaneCount()
     if num_regions == 0 and (lane_count == nil or lane_count == 0) then return nil end
@@ -1018,7 +1852,7 @@ local function GetCurrentRegions()
     return regions_data
 end
 
-local function GetCurrentRegionIDs()
+function GetCurrentRegionIDs()
     local region_ids = {}
     local total = r.CountProjectMarkers(0)
     for i = 0, total - 1 do
@@ -1034,7 +1868,7 @@ end
 -- INSERT TEMPLATE (QN → time via current tempo map)
 ---------------------------------------------------------------------------
 
-local function InsertTemplate(item, slot_idx, group_idx)
+function InsertTemplate(item, slot_idx, group_idx)
     if not item or not item.data then return end
     local region_ids = GetCurrentRegionIDs()
     if #region_ids > 0 and delete_prev_regions then
@@ -1153,7 +1987,7 @@ local function InsertTemplate(item, slot_idx, group_idx)
     end
 end
 
-local function ClearProjectRegions()
+function ClearProjectRegions()
     local region_ids = GetCurrentRegionIDs()
     if #region_ids > 0 then
         r.Undo_BeginBlock()
@@ -1164,7 +1998,7 @@ local function ClearProjectRegions()
     end
 end
 
-local function DeleteAllProjectRegionsWithSWS()
+function DeleteAllProjectRegionsWithSWS()
     if not r.NamedCommandLookup or not r.Main_OnCommand then
         ShowToast("SWS action is not available", true)
         return false
@@ -1180,15 +2014,15 @@ local function DeleteAllProjectRegionsWithSWS()
     return true
 end
 
-local function IsAnyInputActive()
+function IsAnyInputActive()
     return r.ImGui_IsAnyItemActive(ctx)
 end
 
-local function IsAnyPopupOpen()
+function IsAnyPopupOpen()
     return r.ImGui_IsPopupOpen(ctx, "", r.ImGui_PopupFlags_AnyPopupId() + r.ImGui_PopupFlags_AnyPopupLevel())
 end
 
-local function QueueColorMarker(item_color, line_y, line_h, panel_right_x)
+function QueueColorMarker(item_color, line_y, line_h, panel_right_x)
     if not show_color_markers or not item_color or item_color == 0 then return end
     local col = ITEM_COLORS[item_color + 1]
     if not col then return end
@@ -1197,7 +2031,7 @@ local function QueueColorMarker(item_color, line_y, line_h, panel_right_x)
     table.insert(pending_markers, { x = x, y = y, color = col.color })
 end
 
-local function DrawPendingMarkers()
+function DrawPendingMarkers()
     if not show_color_markers or #pending_markers == 0 then return end
     local draw_list = r.ImGui_GetWindowDrawList(ctx)
     for _, marker in ipairs(pending_markers) do
@@ -1206,7 +2040,7 @@ local function DrawPendingMarkers()
     pending_markers = {}
 end
 
-local function DrawToast()
+function DrawToast()
     if not toast_message then return end
     local elapsed = r.time_precise() - toast_time
     if elapsed > toast_duration then
@@ -1220,37 +2054,38 @@ local function DrawToast()
     local win_x, win_y   = r.ImGui_GetWindowPos(ctx)
     local win_w, win_h   = r.ImGui_GetWindowSize(ctx)
     local text_w         = r.ImGui_CalcTextSize(ctx, toast_message)
+    local line_h         = r.ImGui_GetTextLineHeight(ctx)
     local padding        = 12
-    local toast_w        = text_w + padding * 2
-    local toast_h        = 28
+    local toast_w        = math.max(140, text_w + padding * 2)
+    local toast_h        = math.max(26, line_h + 12)
     local toast_x        = win_x + (win_w - toast_w) / 2
     local toast_y        = win_y + win_h - toast_h - 10
     local draw_list      = r.ImGui_GetForegroundDrawList(ctx)
     local bg_alpha       = math.floor(0xEE * alpha)
     local bg_color       = (theme.ToastBg & 0xFFFFFF00) | bg_alpha
     r.ImGui_DrawList_AddRectFilled(draw_list, toast_x, toast_y, toast_x + toast_w, toast_y + toast_h, bg_color, 6)
-    local border_color   = toast_is_error and theme.ToastError or theme.ToastSuccess
+    local border_color   = toast_is_error and theme.ToastError or theme.CheckMark
     local border_alpha   = math.floor(0xFF * alpha)
     border_color         = (border_color & 0xFFFFFF00) | border_alpha
     r.ImGui_DrawList_AddRect(draw_list, toast_x, toast_y, toast_x + toast_w, toast_y + toast_h, border_color, 6, 0, 2)
     local text_alpha     = math.floor(0xFF * alpha)
-    local text_color     = (theme.Text & 0xFFFFFF00) | text_alpha
+    local text_color     = ((toast_is_error and theme.ToastError or theme.CheckMark) & 0xFFFFFF00) | text_alpha
     local text_x         = toast_x + padding
-    local text_y         = toast_y + (toast_h - r.ImGui_GetTextLineHeight(ctx)) / 2
+    local text_y         = toast_y + (toast_h - line_h) / 2
     r.ImGui_DrawList_AddText(draw_list, text_x, text_y, text_color, toast_message)
 end
 
-local function ProcessPendingSaves()
+function ProcessPendingSaves()
     if pending_save_layout and (r.time_precise() - pending_save_layout_time) > SAVE_DELAY then
         SaveLayoutSettingsImmediate()
     end
 end
 
-local has_js_api = r.JS_Dialog_BrowseForSaveFile ~= nil
-local last_w, last_h = 0, 0
-local last_x, last_y = nil, nil
+has_js_api = r.JS_Dialog_BrowseForSaveFile ~= nil
+last_w, last_h = 0, 0
+last_x, last_y = nil, nil
 
-local function DrawHelpShortcut(key, description, highlighted)
+function DrawHelpShortcut(key, description, highlighted)
     local shortcut_color = highlighted and theme.ActivePreset or theme.Text
     r.ImGui_PushStyleColor(ctx, r.ImGui_Col_Text(), shortcut_color)
     r.ImGui_Text(ctx, "●")
@@ -1261,7 +2096,10 @@ local function DrawHelpShortcut(key, description, highlighted)
     r.ImGui_Text(ctx, "- " .. description)
 end
 
-local function loop()
+-- Keep the main UI loop global to stay below Lua's 200-local limit for the
+-- script chunk. REAPER compiles the whole Lua file as one main function.
+function RegionTemplates_MainLoop()
+    StepRemoteTask()
     disableKeyboardNav(ctx)
     local window_flags = r.ImGui_WindowFlags_MenuBar()
     if r.ImGui_WindowFlags_NoCollapse then
@@ -1446,6 +2284,10 @@ local function loop()
                     if r.ImGui_MenuItem(ctx, "Import from File...") then
                         ImportFile()
                     end
+                end
+                r.ImGui_Separator(ctx)
+                if r.ImGui_MenuItem(ctx, "Online Library...", nil, false, github_repo ~= "" and not remote_net.task) then
+                    StartRemoteTask(FetchGitHubTemplateCatalog)
                 end
                 r.ImGui_EndMenu(ctx)
             end
@@ -1821,6 +2663,7 @@ local function loop()
         -- MODALS
         -- ----------------------------------------------------------------
         local modal_flags = r.ImGui_WindowFlags_AlwaysAutoResize()
+        DrawGithubModals()
 
         if open_import_modal then
             r.ImGui_OpenPopup(ctx, "Import##RegionTemplatesImportPopup")
@@ -1970,7 +2813,7 @@ local function loop()
     ProcessPendingSaves()
 
     if open then
-        r.defer(loop)
+        r.defer(RegionTemplates_MainLoop)
     else
         if pending_save_layout then
             SaveLayoutSettingsImmediate()
@@ -1978,5 +2821,4 @@ local function loop()
     end
 end
 
-r.defer(loop)
-
+r.defer(RegionTemplates_MainLoop)
