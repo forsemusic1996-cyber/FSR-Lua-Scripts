@@ -207,7 +207,10 @@
   <category name="Extensions">
     <reapack name="reaper_regiontemplatesnet-x64.dll" type="extension" desc="reaper_regiontemplatesnet-x64.dll">
       <metadata>
-        <description><![CDATA[This module provides the connection to the online library for FSR Region Templates. It is required for online library synchronization and works on Windows only.]]></description>
+        <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}}
+{\pard \ql \f0 \sa180 \li0 \fi0 \outlinelevel0 \b \fs36 FSR Region Templates Online Library Module\par}
+{\pard \ql \f0 \sa180 \li0 \fi0 This module provides the connection to the online library for FSR Region Templates. It is required for online library synchronization and works on Windows only.\par}
+}]]></description>
       </metadata>
       <version name="1.0.1" author="Andrew Dihtiaruk" time="2026-09-23T00:00:00Z">
         <source platform="win64" file="reaper_regiontemplatesnet-x64.dll">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/refs/heads/main/reaper_regiontemplatesnet-x64.dll</source>
