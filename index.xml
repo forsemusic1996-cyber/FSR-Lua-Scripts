@@ -172,6 +172,7 @@
         <changelog><![CDATA[Initial ReaPack release.]]></changelog>
       </version>
     </reapack>
+    <!-- ===== ADD NEW SCRIPT ABOVE THIS LINE ===== -->
   </category>
   <category name="Extensions">
     <!-- ===== reaper_regiontemplatesnet-x64.dll ===== -->
