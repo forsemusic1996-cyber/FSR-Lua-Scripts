@@ -153,8 +153,13 @@
 {\pard \ql \f0 \sb0 \sa180 \li0 \fi0 \cf1 \b \u1055?\u1056?\u1054?\u1057?\u1068?\u1041?\u1040? \u1050? \u1055?\u1054?\u1051?\u1068?\u1047?\u1054?\u1042?\u1040?\u1058?\u1045?\u1051?\u1071?\u1052?:\b0  \u1077?\u1089?\u1083?\u1080? \u1091? \u1074?\u1072?\u1089? \u1077?\u1089?\u1090?\u1100? \u1074?\u1088?\u1077?\u1084?\u1103?, \u1089?\u1086?\u1079?\u1076?\u1072?\u1074?\u1072?\u1081?\u1090?\u1077? \u1080? \u1076?\u1077?\u1083?\u1080?\u1090?\u1077?\u1089?\u1100? \u1089? \u1089?\u1086?\u1086?\u1073?\u1097?\u1077?\u1089?\u1090?\u1074?\u1086?\u1084? \u1073?\u1080?\u1073?\u1083?\u1080?\u1086?\u1090?\u1077?\u1082?\u1072?\u1084?\u1080? \u1096?\u1072?\u1073?\u1083?\u1086?\u1085?\u1086?\u1074? \u1088?\u1077?\u1075?\u1080?\u1086?\u1085?\u1086?\u1074? \u1076?\u1083?\u1103? \u1088?\u1072?\u1079?\u1085?\u1099?\u1093? \u1078?\u1072?\u1085?\u1088?\u1086?\u1074?.\cf0\par}
 }]]></description>
   </metadata>
-<version name="1.0" author="Andrew Dihtiaruk" time="2026-09-04T00:00:00Z">
-        <source main="main" file="FSR Region Templates.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/main/FSR-Scripts/FSR%20Region%20Templates.lua</source>
+<version name="1.0.1" author="Andrew Dihtiaruk" time="2026-09-23T00:00:00Z">
+        <source main="main" file="FSR Region Templates.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/refs/heads/main/FSR-Scripts/FSR%20Region%20Templates.lua</source>
+        <changelog><![CDATA[- Added native synchronization support for the Online Library.
+- Updated FSR Region Templates to version 1.0.1.]]></changelog>
+      </version>
+      <version name="1.0" author="Andrew Dihtiaruk" time="2026-09-04T00:00:00Z">
+        <source main="main" file="FSR Region Templates.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/0f857ec57089714e6c10f91770c299c77a1f3c97/FSR-Scripts/FSR%20Region%20Templates.lua</source>
         <changelog><![CDATA[Initial release.]]></changelog>
       </version>
     </reapack>
@@ -193,6 +198,14 @@
       </version>
     </reapack>
 </category>
+  <category name="Extensions">
+    <reapack name="FSR Region Templates Native Sync.ext" type="extension" desc="Native synchronization module for FSR Region Templates">
+      <version name="1.0.1" author="Andrew Dihtiaruk" time="2026-09-23T00:00:00Z">
+        <source platform="win64" file="reaper_regiontemplatesnet-x64.dll">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/refs/heads/main/reaper_regiontemplatesnet-x64.dll</source>
+        <changelog><![CDATA[Initial ReaPack release.]]></changelog>
+      </version>
+    </reapack>
+  </category>
   <metadata>
     <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}
 {\colortbl;\red255\green0\blue0;\red0\green0\blue255;}
