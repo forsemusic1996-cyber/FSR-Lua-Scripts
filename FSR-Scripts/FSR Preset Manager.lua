@@ -3,7 +3,7 @@
 *              FSR Preset Manager
 * Section      Main
 * Author:      Andrew Dihtiaruk (FSR)
-* Version:     0.0.4-optimized
+* Version:     0.0.4
 -------------------------------------------------------------------------------------------               
 * DONATION:    http://ko-fi.com/pianohousestudio    ««««« Double-click the link to open it.
                http://www.paypal.com/paypalme/AndriiDrots Double-click the link to open it.
