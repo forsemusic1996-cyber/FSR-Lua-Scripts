@@ -143,6 +143,12 @@
 
 
 
+    <reapack name="FSR Preset Manager.lua" type="script" desc="FSR Preset Manager.lua">
+      <version name="0.0.4" author="Andrew Dihtiaruk" time="2026-09-23T00:00:00Z">
+        <source main="main" file="FSR Preset Manager.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/refs/heads/main/FSR-Scripts/FSR%20Preset%20Manager.lua</source>
+        <changelog><![CDATA[Initial ReaPack release.]]></changelog>
+      </version>
+    </reapack>
     <reapack name="FSR Region Templates.lua" type="script" desc="FSR Region Templates.lua">
         <metadata>
                     <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}{\colortbl;\red0\green0\blue255;}
