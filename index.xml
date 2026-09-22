@@ -162,7 +162,7 @@
 <version name="1.0.1" author="Andrew Dihtiaruk" time="2026-09-23T00:00:00Z">
         <source main="main" file="FSR Region Templates.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/refs/heads/main/FSR-Scripts/FSR%20Region%20Templates.lua</source>
         <changelog><![CDATA[- Added native synchronization support for the Online Library only Windows.
--Fixed script window dragging. The window can now only be moved by dragging the title bar.]]></changelog>
+- Fixed script window dragging. The window can now only be moved by dragging the title bar.]]></changelog>
       </version>
       <version name="1.0" author="Andrew Dihtiaruk" time="2026-09-04T00:00:00Z">
         <source main="main" file="FSR Region Templates.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/0f857ec57089714e6c10f91770c299c77a1f3c97/FSR-Scripts/FSR%20Region%20Templates.lua</source>
