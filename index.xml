@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <index version="1" name="FSR Scripts">
   <category name="Utilities">
+    <!-- ===== FSR LoopX.lua ===== -->
     <reapack name="FSR LoopX.lua" type="script" desc="FSR LoopX.lua">
       <version name="1.0.3" author="Andrew Dihtiaruk" time="2026-09-15T00:00:00Z">
         <source main="main" file="FSR LoopX.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/refs/heads/main/FSR-Scripts/FSR%20LoopX.lua</source>
@@ -27,6 +28,7 @@
         <changelog><![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]></changelog>
       </version>
     </reapack>
+    <!-- ===== FSR FlipX.lua ===== -->
     <reapack name="FSR FlipX.lua" type="script" desc="FSR FlipX.lua">
       <metadata>
         <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}{\colortbl;\red255\green0\blue0;}
@@ -62,6 +64,7 @@
         <changelog><![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]></changelog>
       </version>
     </reapack>
+    <!-- ===== FSR BPM Menu.lua ===== -->
     <reapack name="FSR BPM Menu.lua" type="script" desc="FSR BPM Menu.lua">
       <metadata>
         <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}
@@ -75,6 +78,7 @@
         <changelog><![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]></changelog>
       </version>
     </reapack>
+    <!-- ===== FSR Key Transposer.lua ===== -->
     <reapack name="FSR Key Transposer.lua" type="script" desc="FSR Key Transposer.lua">
       <metadata>
         <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}
@@ -88,6 +92,7 @@
         <changelog><![CDATA[Fixed installation path: the script is now installed directly in the Utilities folder.]]></changelog>
       </version>
     </reapack>
+    <!-- ===== FSR Metronome Volume.lua ===== -->
     <reapack name="FSR Metronome Volume.lua" type="script" desc="FSR Metronome Volume.lua">
       <metadata>
         <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}{\colortbl;\red255\green0\blue0;}
@@ -103,12 +108,14 @@
         <changelog><![CDATA[Initial release.]]></changelog>
       </version>
     </reapack>
+    <!-- ===== FSR Preset Manager.lua ===== -->
     <reapack name="FSR Preset Manager.lua" type="script" desc="FSR Preset Manager.lua">
       <version name="0.0.4" author="Andrew Dihtiaruk" time="2026-09-23T00:00:00Z">
         <source main="main" file="FSR Preset Manager.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/refs/heads/main/FSR-Scripts/FSR%20Preset%20Manager.lua</source>
         <changelog><![CDATA[Initial ReaPack release.]]></changelog>
       </version>
     </reapack>
+    <!-- ===== FSR Region Templates.lua ===== -->
     <reapack name="FSR Region Templates.lua" type="script" desc="FSR Region Templates.lua">
       <metadata>
         <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}{\colortbl;\red0\green0\blue255;}
@@ -129,6 +136,7 @@
         <changelog><![CDATA[Initial release.]]></changelog>
       </version>
     </reapack>
+    <!-- ===== FSR Pink Noise Generator .lua ===== -->
     <reapack name="FSR Pink Noise Generator .lua" type="script" desc="FSR Pink Noise Generator .lua">
       <metadata>
         <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}
@@ -142,6 +150,7 @@
         <changelog><![CDATA[Initial release.]]></changelog>
       </version>
     </reapack>
+    <!-- ===== FSR Set MIDI Note Names ===== -->
     <reapack name="FSR Set MIDI Note Names" type="script" desc="FSR Set MIDI Note Names">
       <metadata>
         <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}{\f1 \fmodern Courier;}}
@@ -165,6 +174,7 @@
     </reapack>
   </category>
   <category name="Extensions">
+    <!-- ===== reaper_regiontemplatesnet-x64.dll ===== -->
     <reapack name="reaper_regiontemplatesnet-x64.dll" type="extension" desc="reaper_regiontemplatesnet-x64.dll">
       <metadata>
         <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fswiss Helvetica;}}
