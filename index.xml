@@ -161,8 +161,8 @@
   </metadata>
 <version name="1.0.1" author="Andrew Dihtiaruk" time="2026-09-23T00:00:00Z">
         <source main="main" file="FSR Region Templates.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/refs/heads/main/FSR-Scripts/FSR%20Region%20Templates.lua</source>
-        <changelog><![CDATA[- Added native synchronization support for the Online Library only Windows.
-- Fixed script window dragging. The window can now only be moved by dragging the title bar.]]></changelog>
+        <changelog><![CDATA[- Added native synchronization support for the Online Library.
+- Updated FSR Region Templates to version 1.0.1.]]></changelog>
       </version>
       <version name="1.0" author="Andrew Dihtiaruk" time="2026-09-04T00:00:00Z">
         <source main="main" file="FSR Region Templates.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/0f857ec57089714e6c10f91770c299c77a1f3c97/FSR-Scripts/FSR%20Region%20Templates.lua</source>
@@ -206,6 +206,9 @@
 </category>
   <category name="Extensions">
     <reapack name="reaper_regiontemplatesnet-x64.dll" type="extension" desc="reaper_regiontemplatesnet-x64.dll">
+      <metadata>
+        <description><![CDATA[This module provides the connection to the online library for FSR Region Templates. It is required for online library synchronization and works on Windows only.]]></description>
+      </metadata>
       <version name="1.0.1" author="Andrew Dihtiaruk" time="2026-09-23T00:00:00Z">
         <source platform="win64" file="reaper_regiontemplatesnet-x64.dll">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/refs/heads/main/reaper_regiontemplatesnet-x64.dll</source>
         <changelog><![CDATA[Initial ReaPack release.]]></changelog>
