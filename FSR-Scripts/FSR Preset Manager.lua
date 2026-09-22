@@ -3,7 +3,7 @@
 *              FSR Preset Manager
 * Section      Main
 * Author:      Andrew Dihtiaruk (FSR)
-* Version:     0.0.1
+* Version:     0.0.4-optimized
 -------------------------------------------------------------------------------------------               
 * DONATION:    http://ko-fi.com/pianohousestudio    ««««« Double-click the link to open it.
                http://www.paypal.com/paypalme/AndriiDrots Double-click the link to open it.
@@ -21,6 +21,7 @@ end;
 local ctx = reaper.ImGui_CreateContext("Preset Manager");
 local presetList = {}
 local selectedPresets = {}
+local selectedCount = 0
 local presetFile = nil
 local presetFileExt = nil
 track = nil
@@ -207,6 +208,7 @@ local TOOLTIP_RIGHT_MARGIN = 16
 local feedbackMessage = ""
 local feedbackTimer = 0
 local feedbackColor = 0x4488FFFF
+local feedbackStyle = "text"
 local FEEDBACK_DURATION = 1.0
 
 local lastPresetCount = 0
@@ -215,6 +217,679 @@ local nextExternalCheckTime = 0
 local filterCacheVersion = 0
 local filteredCache = { signature = nil, presets = {}, indexMap = {} }
 local tooltipWidthCache = { signature = nil, width = 0 }
+local preserveFilteredDuringColorRebuild = false
+
+
+-- ===== PERFORMANCE / LARGE-BANK INFRASTRUCTURE =====
+-- Production build: stress/debug profiler removed.
+function profBegin() return 0 end
+function profEnd(name, t0, visited) end
+function gcMaintenance(units)
+    -- Bounded incremental GC after allocation-heavy jobs. Never force a full
+    -- collection per frame.
+    collectgarbage('step', units or 96)
+end
+
+JOB_BUDGET_SEC = 0.0015
+bankGeneration = 0
+bankHeaderEnd = 0
+bankLoading = false
+activeLoadJob = nil
+filterJob = nil
+sortBuildJob = nil
+sortCache = { az = nil, colors = nil, tooltips_az = nil }
+tooltipJob = nil
+metadataDirty = false
+metadataRevision = 0
+metadataWriteJob = nil
+metadataWriteQueue = {}
+activePluginMeta = nil
+legacyColorMarkers = {}
+legacyPresetFolders = {}
+legacyFolders = {}
+pluginsDir = managerDataRoot .. '/Plugins'
+bankHeaderNorm = ''
+
+function cancelFilterJob(runGC)
+    local j = filterJob
+    if not j then return end
+    -- Break references immediately so completed/cancelled searches do not keep
+    -- large ID/result arrays alive until a later major GC cycle.
+    j.source = nil
+    j.ids = nil
+    j.result = nil
+    filterJob = nil
+    if runGC ~= false then gcMaintenance(96) end
+end
+
+function cancelSortBuildJob(runGC)
+    local j = sortBuildJob
+    if not j then return end
+    j.src = nil
+    j.dst = nil
+    j.merge = nil
+    sortBuildJob = nil
+    if runGC ~= false then gcMaintenance(96) end
+end
+
+function invalidatePresetViewCache(preserveCurrentFiltered, sortImpact)
+    filterCacheVersion = filterCacheVersion + 1
+    filteredCache.signature = nil
+    tooltipWidthCache.signature = nil
+    cancelFilterJob(false)
+    tooltipJob = nil
+    preserveFilteredDuringColorRebuild = preserveCurrentFiltered and (#currentFilteredList > 0) or false
+
+    -- Sort orders are independent from search/folder filters.  By default a
+    -- structural/name/tooltip change invalidates every cached order.  Callers
+    -- that only changed folders/search can pass "none"; color-only changes
+    -- can pass "colors".
+    if sortImpact == nil or sortImpact == 'all' then
+        sortCache.az, sortCache.colors, sortCache.tooltips_az = nil, nil, nil
+        cancelSortBuildJob(false)
+    elseif sortImpact == 'colors' then
+        sortCache.colors = nil
+        if sortBuildJob and sortBuildJob.mode == 'colors' then cancelSortBuildJob(false) end
+    elseif sortImpact == 'az' then
+        sortCache.az = nil
+        if sortBuildJob and sortBuildJob.mode == 'az' then cancelSortBuildJob(false) end
+    elseif sortImpact == 'tooltips_az' then
+        sortCache.tooltips_az = nil
+        if sortBuildJob and sortBuildJob.mode == 'tooltips_az' then cancelSortBuildJob(false) end
+    end
+    gcMaintenance(64)
+end
+
+function invalidateFilterOnly(preserveCurrentFiltered)
+    invalidatePresetViewCache(preserveCurrentFiltered, 'none')
+end
+
+function fnv1a32(str)
+    local h = 0x811C9DC5
+    for i = 1, #str do
+        h = ((h ~ str:byte(i)) * 0x01000193) & 0xFFFFFFFF
+    end
+    return string.format('%08X', h)
+end
+
+-- Stable-preset identity support.  The fingerprint deliberately excludes Name
+-- and Tooltip so rename/tooltip edits do not change preset identity.  It is
+-- built incrementally while the native bank is already being streamed, so no
+-- Data/Data_* payload is retained in Lua memory.
+function fnv1a32Update(h, str)
+    h = h or 0x811C9DC5
+    str = tostring(str or '')
+    for i = 1, #str do
+        h = ((h ~ str:byte(i)) * 0x01000193) & 0xFFFFFFFF
+    end
+    return h
+end
+
+function feedPresetFingerprint(p, line)
+    if not p or not line then return end
+    local isPayload = line:sub(1,5) == 'Data=' or line:sub(1,5) == 'Data_' or line:sub(1,4) == 'Len='
+    if not isPayload then return end
+    p._fp1 = fnv1a32Update(p._fp1 or 0x811C9DC5, line)
+    p._fp2 = fnv1a32Update(p._fp2 or 0x9E3779B9, line)
+    p._fpBytes = (p._fpBytes or 0) + #line
+end
+
+function finalizePresetFingerprint(p)
+    if not p then return '' end
+    if p.fingerprint and p.fingerprint ~= '' then return p.fingerprint end
+    if p._fp1 then
+        p.fingerprint = string.format('%08X%08X:%d:%s', p._fp1 & 0xFFFFFFFF, (p._fp2 or 0) & 0xFFFFFFFF,
+            p._fpBytes or 0, tostring(p.len or ''))
+    else
+        p.fingerprint = ''
+    end
+    p._fp1, p._fp2, p._fpBytes = nil, nil, nil
+    return p.fingerprint
+end
+
+local stablePresetIDSerial = 0
+function makeStablePresetID(p, usedIDs, identity)
+    usedIDs = usedIDs or {}
+    identity = tostring(identity or (activePluginMeta and activePluginMeta.identity) or '')
+    local fp = finalizePresetFingerprint(p)
+    while true do
+        stablePresetIDSerial = stablePresetIDSerial + 1
+        local seed = table.concat({identity, fp, tostring(p and p.sourceStart or 0), tostring(p and p.ordinal or 0), tostring(stablePresetIDSerial)}, '\31')
+        local id = 'P' .. fnv1a32(seed) .. fnv1a32(seed .. '\31FSR')
+        if not usedIDs[id] then usedIDs[id] = true; return id end
+    end
+end
+
+-- Reattach the IDs from the previous index after an external bank rewrite.
+-- Fingerprint is the primary key; name+Len is only a compatibility fallback
+-- for the first migration from V3/V4, where fingerprints did not exist yet.
+function reconcileStablePresetIDs(newList, oldList, identity)
+    oldList = oldList or {}
+    local usedOld, usedIDs = {}, {}
+    local byFingerprint, byNameLen, byName = {}, {}, {}
+
+    local function add(map, key, entry)
+        if not key or key == '' then return end
+        local t = map[key]
+        if not t then t = {}; map[key] = t end
+        t[#t+1] = entry
+    end
+
+    for i, p in ipairs(oldList) do
+        if p and p.id and p.id ~= '' then
+            usedIDs[p.id] = true
+            add(byFingerprint, p.fingerprint, {i=i,p=p})
+            add(byNameLen, tostring(p.name or '') .. '\31' .. tostring(p.len or ''), {i=i,p=p})
+            add(byName, tostring(p.name or ''), {i=i,p=p})
+        end
+    end
+
+    local function claim(candidates, p, newIndex)
+        if not candidates then return nil end
+        local best, bestScore
+        for _, e in ipairs(candidates) do
+            if not usedOld[e.i] and e.p and e.p.id and e.p.id ~= '' then
+                local oldOrdinal = tonumber(e.p.ordinal) or (e.i - 1)
+                local newOrdinal = tonumber(p.ordinal) or (newIndex - 1)
+                local score = math.abs(oldOrdinal - newOrdinal)
+                if e.p.name == p.name then score = score - 100000000 end
+                if tostring(e.p.len or '') == tostring(p.len or '') then score = score - 1000000 end
+                if not best or score < bestScore then best, bestScore = e, score end
+            end
+        end
+        if best then
+            usedOld[best.i] = true
+            return best.p.id
+        end
+    end
+
+    for i, p in ipairs(newList or {}) do
+        finalizePresetFingerprint(p)
+        local id
+        if p.fingerprint and p.fingerprint ~= '' then id = claim(byFingerprint[p.fingerprint], p, i) end
+        if not id then id = claim(byNameLen[tostring(p.name or '') .. '\31' .. tostring(p.len or '')], p, i) end
+        if not id then id = claim(byName[tostring(p.name or '')], p, i) end
+        if not id then id = makeStablePresetID(p, usedIDs, identity) else usedIDs[id] = true end
+        p.id = id
+    end
+end
+
+-- V2/V3/V4 stored color/folder bindings by preset name.  V5 stores them by
+-- stable preset ID.  Duplicate names intentionally inherit the old metadata on
+-- migration, matching the old behaviour instead of losing information.
+function bindMetadataToStableIDs(meta, presets)
+    if not meta then return false end
+    local changed = false
+    if meta.metadataKeyMode ~= 'id' then
+        local oldFolders, oldColors = meta.presetFolders or {}, meta.colors or {}
+        local newFolders, newColors = {}, {}
+        for _, p in ipairs(presets or {}) do
+            if p and p.id then
+                local folder = oldFolders[p.name]
+                local color = oldColors[p.name]
+                if folder ~= nil then newFolders[p.id] = folder end
+                if color ~= nil then newColors[p.id] = color end
+            end
+        end
+        meta.presetFolders, meta.colors = newFolders, newColors
+        meta.metadataKeyMode = 'id'
+        changed = true
+    else
+        local valid = {}
+        for _, p in ipairs(presets or {}) do if p and p.id then valid[p.id] = true end end
+        for id in pairs(meta.presetFolders or {}) do if not valid[id] then meta.presetFolders[id] = nil; changed = true end end
+        for id in pairs(meta.colors or {}) do if not valid[id] then meta.colors[id] = nil; changed = true end end
+    end
+    if meta == activePluginMeta then
+        presetFolders = meta.presetFolders
+        colorMarkers = meta.colors
+    end
+    return changed
+end
+
+function hexEncode(str)
+    str = tostring(str or '')
+    return (str:gsub('.', function(c) return string.format('%02X', c:byte()) end))
+end
+function hexDecode(hex)
+    if not hex or (#hex % 2) ~= 0 then return '' end
+    return (hex:gsub('(%x%x)', function(cc) return string.char(tonumber(cc,16)) end))
+end
+
+function safePluginStem(name)
+    local s = tostring(name or 'Plugin'):gsub('[\\/:*?"<>|%c]', '_'):gsub('%s+', ' ')
+    s = s:match('^%s*(.-)%s*$') or 'Plugin'
+    if s == '' then s = 'Plugin' end
+    if #s > 72 then s = s:sub(1,72) end
+    return s
+end
+
+function makePluginIdentity(fxName, bankPath)
+    local full = tostring(fxName or '') .. '\31' .. tostring(bankPath or '')
+    return full, safePluginStem(fxName) .. '_' .. fnv1a32(full)
+end
+
+function safeReplaceFile(tmpPath, targetPath)
+    local bakPath = targetPath .. '.fsr_bak'
+    os.remove(bakPath)
+    local hadTarget = reaper.file_exists(targetPath)
+    if hadTarget then
+        local ok = os.rename(targetPath, bakPath)
+        if not ok then return false, 'Cannot create backup' end
+    end
+    local ok = os.rename(tmpPath, targetPath)
+    if not ok then
+        if hadTarget then os.rename(bakPath, targetPath) end
+        return false, 'Cannot replace target'
+    end
+    return true
+end
+
+function getCheapFileSignature(path)
+    if not path or path == '' then return '0' end
+    local f = io.open(path, 'rb')
+    if not f then return '0' end
+    local size = f:seek('end') or 0
+    local h = 0x811C9DC5
+    local function mix(data)
+        if not data then return end
+        for i=1,#data do h = ((h ~ data:byte(i)) * 0x01000193) & 0xFFFFFFFF end
+    end
+    f:seek('set',0); mix(f:read(math.min(4096,size)))
+    if size > 8192 then f:seek('set', math.max(0, math.floor(size/2)-2048)); mix(f:read(4096)) end
+    if size > 4096 then f:seek('set', math.max(0,size-4096)); mix(f:read(4096)) end
+    f:close()return tostring(size) .. ':' .. string.format('%08X', h)
+end
+
+function hexToken(str)
+    local h = hexEncode(str or '')
+    return h ~= '' and h or '-'
+end
+
+function unhexToken(tok)
+    if not tok or tok == '-' then return '' end
+    return hexDecode(tok)
+end
+
+-- FSR_PMETA_V5 compact text framing (V4-compatible string framing).  Arbitrary UTF-8 text stays readable
+-- instead of being doubled as HEX.  Only line-breaking bytes and backslash
+-- are escaped so every metadata record remains one physical text line.
+function frameEscape(str)
+    str = tostring(str or '')
+    str = str:gsub('\\', '\\\\')
+    str = str:gsub('\r', '\\r')
+    str = str:gsub('\n', '\\n')
+    return str
+end
+
+function frameUnescape(str)
+    str = tostring(str or '')
+    return (str:gsub('\\(.)', function(c)
+        if c == 'n' then return '\n' end
+        if c == 'r' then return '\r' end
+        if c == '\\' then return '\\' end
+        return '\\' .. c -- preserve unknown/corrupt escape sequences losslessly
+    end))
+end
+
+function frameToken(str)
+    local payload = frameEscape(str)
+    return tostring(#payload) .. ':' .. payload
+end
+
+function frameRead(line, pos)
+    if not line then return nil, pos end
+    pos = pos or 1
+    local lineLen = #line
+    while pos <= lineLen and line:sub(pos,pos):match('%s') do pos = pos + 1 end
+    local colon = line:find(':', pos, true)
+    if not colon then return nil, pos end
+    local nstr = line:sub(pos, colon - 1)
+    if nstr == '' or not nstr:match('^%d+$') then return nil, pos end
+    local n = tonumber(nstr)
+    if not n or n < 0 then return nil, pos end
+    local first = colon + 1
+    local last = first + n - 1
+    if last > lineLen then return nil, pos end
+    local payload = n == 0 and '' or line:sub(first, last)
+    return frameUnescape(payload), last + 1
+end
+
+function signatureSize(sig)
+    return tonumber(tostring(sig or ''):match('^(%d+):')) or 0
+end
+
+function readNormalizedBankHeader(path)
+    if not path or path == '' then return '', 0 end
+    local f = io.open(path, 'rb')
+    if not f then return '', 0 end
+    local parts, pos = {}, 0
+    while true do
+        local lineStart = pos
+        local line = f:read('*L')
+        if not line then break end
+        pos = pos + #line
+        if line:match('^%[Preset%d+%]') then
+            f:close()
+            local txt = table.concat(parts):gsub('NbPresets=%d+', 'NbPresets=#', 1)return txt, lineStart
+        end
+        parts[#parts+1] = line
+        if pos > 1024 * 1024 then break end
+    end
+    f:close()local txt = table.concat(parts):gsub('NbPresets=%d+', 'NbPresets=#', 1)
+    return txt, pos
+end
+
+function loadPluginMeta(fxName, bankPath)
+    -- RecursiveCreateDirectory may report 0 when the directory already exists on some setups.
+    -- Directory creation is therefore best-effort here; actual I/O success is decided by io.open below.
+    ensurePresetDirectory(pluginsDir)
+    local identity, stem = makePluginIdentity(fxName, bankPath)
+    local path = pluginsDir .. '/' .. stem .. '.txt'
+    local meta = {
+        identity = identity, path = path, bankPath = bankPath or '', folders = {}, presetFolders = {}, colors = {},
+        revision = 0, index = {}, indexSignature = nil, headerEnd = 0, headerNorm = '', ext = nil, indexComplete = false, expectedIndexCount = nil,
+        loadedFromDisk = false, formatVersion = 5, needsV5Migration = false, metadataKeyMode = 'id'
+    }
+    local f = io.open(path, 'rb')
+    if f then
+        local magic = f:read('*l')
+        local supported = magic == 'FSR_PMETA_V2' or magic == 'FSR_PMETA_V3' or magic == 'FSR_PMETA_V4' or magic == 'FSR_PMETA_V5'
+        if supported then
+            meta.loadedFromDisk = true
+            meta.formatVersion = tonumber(tostring(magic):match('V(%d+)$')) or 0
+            meta.needsV5Migration = magic ~= 'FSR_PMETA_V5'
+            meta.metadataKeyMode = magic == 'FSR_PMETA_V5' and 'id' or 'name'
+            for line in f:lines() do
+                local tag = line:sub(1,1)
+                if magic == 'FSR_PMETA_V4' or magic == 'FSR_PMETA_V5' then
+                    if tag == 'I' then
+                        local v = frameRead(line, 3); if v ~= nil then meta.identity = v end
+                    elseif tag == 'B' then
+                        local v = frameRead(line, 3); if v ~= nil then meta.bankPath = v end
+                    elseif tag == 'S' then
+                        meta.indexSignature = line:match('^S%s+(%S+)')
+                    elseif tag == 'H' then
+                        meta.headerEnd = tonumber(line:match('^H%s+(%-?%d+)')) or 0
+                    elseif tag == 'N' then
+                        meta.expectedIndexCount = tonumber(line:match('^N%s+(%d+)'))
+                    elseif tag == 'Q' then
+                        local v = frameRead(line, 3); if v ~= nil then meta.headerNorm = v end
+                    elseif tag == 'E' then
+                        local v = frameRead(line, 3); if v ~= nil then meta.ext = v end
+                    elseif tag == 'F' then
+                        local v = frameRead(line, 3); if v ~= nil then meta.folders[#meta.folders+1] = v end
+                    elseif tag == 'P' then
+                        local a, pos = frameRead(line, 3)
+                        local b = a ~= nil and frameRead(line, pos) or nil
+                        if a ~= nil and b ~= nil then meta.presetFolders[a] = b end
+                    elseif tag == 'C' then
+                        local a, pos = frameRead(line, 3)
+                        local b = a ~= nil and tonumber(line:sub(pos):match('^%s+(%-?%d+)')) or nil
+                        if a ~= nil and b ~= nil then meta.colors[a] = b end
+                    elseif tag == 'R' then
+                        local ord,ss,bs,se,ns,had,pos = line:match('^R%s+(%-?%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%-?%d+)%s+(%d+)%s+()')
+                        if ord then
+                            local name, tt, len, id, fingerprint
+                            name, pos = frameRead(line, pos)
+                            if name ~= nil then tt, pos = frameRead(line, pos) end
+                            if tt ~= nil then len, pos = frameRead(line, pos) end
+                            if len ~= nil then id, pos = frameRead(line, pos) end
+                            if id ~= nil and magic == 'FSR_PMETA_V5' then fingerprint, pos = frameRead(line, pos) else fingerprint = '' end
+                            if name ~= nil and tt ~= nil and len ~= nil and id ~= nil and fingerprint ~= nil then
+                                meta.index[#meta.index+1] = {
+                                    ordinal=tonumber(ord) or (#meta.index), sourceStart=tonumber(ss) or 0, bodyStart=tonumber(bs) or 0,
+                                    sourceEnd=tonumber(se) or 0, nameStart=(tonumber(ns) or -1), name=name, nameLower=name:lower(),
+                                    originalName=name, tooltip=tt, tooltipLower=tt:lower(), originalTooltip=tt, len=len,
+                                    hadTooltip=(had=='1'), id=id ~= '' and id or nil, fingerprint=fingerprint or ''
+                                }
+                            end
+                        end
+                    end
+                else
+                    -- Backward-compatible V2/V3 reader.  These files are migrated to V5
+                    -- after the native bank index is rebuilt.
+                    if tag == 'I' then meta.identity = unhexToken(line:match('^I%s+(%S+)'))
+                    elseif tag == 'B' then meta.bankPath = unhexToken(line:match('^B%s+(%S+)'))
+                    elseif tag == 'S' then meta.indexSignature = line:match('^S%s+(%S+)')
+                    elseif tag == 'H' then meta.headerEnd = tonumber(line:match('^H%s+(%-?%d+)')) or 0
+                    elseif tag == 'N' then meta.expectedIndexCount = tonumber(line:match('^N%s+(%d+)'))
+                    elseif tag == 'Q' then meta.headerNorm = unhexToken(line:match('^Q%s+(%S+)'))
+                    elseif tag == 'E' then meta.ext = unhexToken(line:match('^E%s+(%S+)'))
+                    elseif tag == 'F' then
+                        local a = line:match('^F%s+(%S+)'); if a then meta.folders[#meta.folders+1] = unhexToken(a) end
+                    elseif tag == 'P' then
+                        local a,b = line:match('^P%s+(%S+)%s+(%S+)$'); if a and b then meta.presetFolders[unhexToken(a)] = unhexToken(b) end
+                    elseif tag == 'C' then
+                        local a,b = line:match('^C%s+(%S+)%s+(%S+)$'); if a and b then meta.colors[unhexToken(a)] = tonumber(b) end
+                    elseif tag == 'R' and magic == 'FSR_PMETA_V3' then
+                        local ord,ss,bs,se,ns,nameHex,ttHex,lenHex,had,idHex = line:match('^R%s+(%-?%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%-?%d+)%s+(%S+)%s+(%S+)%s+(%S+)%s+(%d+)%s+(%S+)$')
+                        if ord then
+                            local name, tt, len, id = unhexToken(nameHex), unhexToken(ttHex), unhexToken(lenHex), unhexToken(idHex)
+                            meta.index[#meta.index+1] = {
+                                ordinal=tonumber(ord) or (#meta.index), sourceStart=tonumber(ss) or 0, bodyStart=tonumber(bs) or 0,
+                                sourceEnd=tonumber(se) or 0, nameStart=(tonumber(ns) or -1), name=name, nameLower=name:lower(),
+                                originalName=name, tooltip=tt, tooltipLower=tt:lower(), originalTooltip=tt, len=len,
+                                hadTooltip=(had=='1'), id=id ~= '' and id or nil
+                            }
+                        end
+                    end
+                end
+            end
+            meta.indexComplete = (magic == 'FSR_PMETA_V3' or magic == 'FSR_PMETA_V4' or magic == 'FSR_PMETA_V5')
+                and meta.indexSignature ~= nil and meta.expectedIndexCount ~= nil and #meta.index == meta.expectedIndexCount
+        end
+        f:close()
+    else
+        local key = sanitizeFXName(fxName)
+        local lf = allFXFolders[key]
+        if lf then for i=1,#lf do meta.folders[#meta.folders+1] = lf[i] end end
+        local lp = allPresetFolders[key]
+        if lp then for n,folder in pairs(lp) do meta.presetFolders[n] = folder end end
+        for n,c in pairs(legacyColorMarkers) do meta.colors[n] = c end
+        if next(meta.presetFolders) ~= nil or next(meta.colors) ~= nil then
+            meta.metadataKeyMode = 'name'
+            meta.needsV5Migration = true
+        end
+    end
+    return meta
+end
+
+function syncActiveMetaIndexState()
+    local m = activePluginMeta
+    if not m or m.bankPath ~= presetFile then return end
+    m.indexSignature = lastPresetFileTime
+    m.headerEnd = bankHeaderEnd or 0
+    m.headerNorm = bankHeaderNorm or ''
+    m.ext = presetFileExt or ''
+    m.index = presetList
+    m.indexComplete = true
+    m.folders = folders
+    m.presetFolders = presetFolders
+    m.colors = colorMarkers
+end
+
+function makeMetaWriteSnapshot(m)
+    if not m then return nil end
+    if m == activePluginMeta then syncActiveMetaIndexState() end
+    return {
+        meta=m, path=m.path, identity=m.identity or '', bankPath=m.bankPath or '',
+        indexSignature=m.indexSignature or '0', headerEnd=m.headerEnd or 0, headerNorm=m.headerNorm or '', ext=m.ext or '',
+        folders=m.folders or {}, presetFolders=m.presetFolders or {}, colors=m.colors or {}, presets=m.index or {},
+        revision=m.dirtyRevision or 0
+    }
+end
+
+function enqueuePluginMetaWrite(m)
+    if not m or not m.path or not m.dirty then return false end
+    local rev = m.dirtyRevision or 0
+    if m.queuedRevision == rev then return true end
+    if metadataWriteJob and metadataWriteJob.snapshot.meta == m and metadataWriteJob.snapshot.revision == rev then return true end
+    local snap = makeMetaWriteSnapshot(m)
+    if not snap then return false end
+    metadataWriteQueue[#metadataWriteQueue+1] = snap
+    m.queuedRevision = rev
+    return true
+end
+
+function startNextMetadataWriteJob()
+    if metadataWriteJob then return true end
+    while #metadataWriteQueue > 0 do
+        local snap = table.remove(metadataWriteQueue, 1)
+        local m = snap.meta
+        if m and m.dirty then
+            if (m.dirtyRevision or 0) ~= snap.revision then
+                m.queuedRevision = nil
+                enqueuePluginMetaWrite(m)
+            else
+                ensurePresetDirectory(pluginsDir)
+                local tmp = snap.path .. '.fsr_tmp'
+                os.remove(tmp)
+                local f = io.open(tmp, 'wb')
+                if f then
+                    f:write('FSR_PMETA_V5\n')
+                    f:write('I ', frameToken(snap.identity), '\n')
+                    f:write('B ', frameToken(snap.bankPath), '\n')
+                    f:write('S ', tostring(snap.indexSignature), '\n')
+                    f:write('H ', tostring(snap.headerEnd), '\n')
+                    f:write('N ', tostring(#snap.presets), '\n')
+                    f:write('Q ', frameToken(snap.headerNorm), '\n')
+                    f:write('E ', frameToken(snap.ext), '\n')
+                    metadataWriteJob = {snapshot=snap,file=f,tmp=tmp,phase='folders',i=1,mapKey=nil,visited=0,t0=profBegin()}
+                    return true
+                else
+                    m.queuedRevision=nil
+                    if reaper.ShowConsoleMsg then
+                        reaper.ShowConsoleMsg('[FSR Preset Manager] Cannot create plugin metadata TXT: ' .. tostring(tmp) .. '\n')
+                    end
+                end
+            end
+        elseif m then
+            m.queuedRevision=nil
+        end
+    end
+    return false
+end
+
+function abortMetadataWriteJob(job)
+    if not job then return end
+    if job.file then job.file:close(); job.file=nil end
+    os.remove(job.tmp)
+    local m=job.snapshot and job.snapshot.meta
+    if m then
+        m.queuedRevision=nil
+        if m.dirty then enqueuePluginMetaWrite(m) end
+    end
+    metadataWriteJob=nil
+end
+
+function finishMetadataWriteJob(job)
+    local snap=job.snapshot; local m=snap.meta
+    if (m.dirtyRevision or 0) ~= snap.revision then abortMetadataWriteJob(job); return false end
+    job.file:flush(); job.file:close(); job.file=nil
+    local check=io.open(job.tmp,'rb')
+    local valid=false
+    if check then valid=(check:read('*l')=='FSR_PMETA_V5'); check:close() end
+    if not valid then os.remove(job.tmp); m.queuedRevision=nil; metadataWriteJob=nil; return false end
+    local replaced,why=safeReplaceFile(job.tmp,snap.path)
+    metadataWriteJob=nil
+    m.queuedRevision=nil
+    if replaced then
+        m.revision=(m.revision or 0)+1
+        m.loadedFromDisk=true
+        m.formatVersion=5
+        m.needsV5Migration=false
+        m.metadataKeyMode='id'
+        if (m.dirtyRevision or 0)==snap.revision then m.dirty=false end
+        if m==activePluginMeta then metadataDirty=m.dirty and true or false end
+        profEnd('pluginMetaWrite',job.t0,job.visited)
+        return true
+    end
+    m.dirty=true
+    return false,why
+end
+
+function stepMetadataWriteJob(budgetEnd)
+    local job=metadataWriteJob
+    if not job then startNextMetadataWriteJob(); job=metadataWriteJob; if not job then return true end end
+    local snap=job.snapshot; local m=snap.meta
+    if not m or (m.dirtyRevision or 0) ~= snap.revision then abortMetadataWriteJob(job); return true end
+    while reaper.time_precise() < budgetEnd do
+        if job.phase=='folders' then
+            local v=snap.folders[job.i]
+            if v==nil then job.phase='presetFolders'; job.i=1; job.mapKey=nil
+            else job.file:write('F ',frameToken(v),'\n'); job.i=job.i+1; job.visited=job.visited+1 end
+        elseif job.phase=='presetFolders' then
+            local k,v=next(snap.presetFolders,job.mapKey); job.mapKey=k
+            if k==nil then job.phase='colors'; job.mapKey=nil
+            else job.file:write('P ',frameToken(k),' ',frameToken(v),'\n'); job.visited=job.visited+1 end
+        elseif job.phase=='colors' then
+            local k,v=next(snap.colors,job.mapKey); job.mapKey=k
+            if k==nil then job.phase='records'; job.i=1
+            else job.file:write('C ',frameToken(k),' ',tostring(v),'\n'); job.visited=job.visited+1 end
+        elseif job.phase=='records' then
+            local p=snap.presets[job.i]
+            if not p then return finishMetadataWriteJob(job) end
+            local i=job.i
+            job.file:write('R ',tostring(p.ordinal or (i-1)),' ',tostring(p.sourceStart or 0),' ',tostring(p.bodyStart or 0),' ',
+                tostring(p.sourceEnd or 0),' ',tostring(p.nameStart or -1),' ',p.hadTooltip and '1' or '0',' ',
+                frameToken(p.name or ''),' ',frameToken(p.tooltip or ''),' ',frameToken(p.len or ''),' ',frameToken(p.id or ''),' ',frameToken(p.fingerprint or ''),'\n')
+            job.i=i+1; job.visited=job.visited+1
+        end
+    end
+    return false
+end
+
+function saveActivePluginMeta()
+    if not activePluginMeta then return false end
+    syncActiveMetaIndexState()
+    activePluginMeta.dirty=true
+    activePluginMeta.dirtyRevision=activePluginMeta.dirtyRevision or metadataRevision
+    enqueuePluginMetaWrite(activePluginMeta)
+    startNextMetadataWriteJob()
+    return true
+end
+
+function activatePluginMeta(fxName, bankPath)
+    local identity = makePluginIdentity(fxName, bankPath)
+    if activePluginMeta and activePluginMeta.identity == identity and activePluginMeta.bankPath == (bankPath or '') then
+        folders = activePluginMeta.folders
+        presetFolders = activePluginMeta.presetFolders
+        colorMarkers = activePluginMeta.colors
+        metadataDirty=activePluginMeta.dirty and true or false
+        return activePluginMeta
+    end
+    activePluginMeta = loadPluginMeta(fxName, bankPath)
+    if activePluginMeta then
+        activePluginMeta.dirty=false
+        activePluginMeta.dirtyRevision=activePluginMeta.dirtyRevision or 0
+        activePluginMeta.queuedRevision=nil
+        folders = activePluginMeta.folders
+        presetFolders = activePluginMeta.presetFolders
+        colorMarkers = activePluginMeta.colors
+        metadataDirty=false
+        invalidatePresetViewCache()
+    end
+    return activePluginMeta
+end
+
+function markMetadataDirty()
+    metadataRevision = metadataRevision + 1
+    metadataDirty = true
+    if activePluginMeta then
+        syncActiveMetaIndexState()
+        activePluginMeta.dirty=true
+        activePluginMeta.dirtyRevision=metadataRevision
+        activePluginMeta.folders=folders
+        activePluginMeta.presetFolders=presetFolders
+        activePluginMeta.colors=colorMarkers
+    end
+end
+
+function flushPluginMetadataIfDirty()
+    if activePluginMeta and activePluginMeta.dirty then enqueuePluginMetaWrite(activePluginMeta) end
+    startNextMetadataWriteJob()
+end
 
 local function disableKeyboardNav()
     if not (reaper.ImGui_GetConfigVar and reaper.ImGui_SetConfigVar and reaper.ImGui_ConfigVar_Flags and reaper.ImGui_ConfigFlags_NavEnableKeyboard) then
@@ -240,16 +915,31 @@ end
 
 disableKeyboardNav()
 
-local function invalidatePresetViewCache()
-    filterCacheVersion = filterCacheVersion + 1
-    filteredCache.signature = nil
-    tooltipWidthCache.signature = nil
+local function invalidateColorDependentView()
+    -- Color changes only invalidate the cached Color First order.  Ordinary
+    -- A-Z/original-order searches keep their sort cache intact.
+    sortCache.colors = nil
+    if sortBuildJob and sortBuildJob.mode == 'colors' then sortBuildJob = nil end
+    if filterByColor ~= nil or sortMode == "colors" then
+        invalidatePresetViewCache(true, 'colors')
+    end
 end
 
-local function showFeedback(msg, color)
+function showFeedback(msg, color)
     feedbackMessage = msg
     feedbackTimer = reaper.time_precise() + FEEDBACK_DURATION
-    feedbackColor = color or (appearance.usingDefaultTheme and 0x4488FFFF or appearance.accentColor)
+    -- Every transient notification uses the same full-width Search-field toast.
+    feedbackStyle = "toast"
+    -- All transient UI notifications use Accent 1, regardless of message type.
+    feedbackColor = appearance.accentColor
+end
+
+local function showFolderToast(count, folder)
+    local noun = (count == 1) and "preset" or "presets"
+    feedbackMessage = "✓ " .. tostring(count) .. " " .. noun .. " → " .. tostring(folder)
+    feedbackTimer = reaper.time_precise() + 1.25
+    feedbackStyle = "toast"
+    feedbackColor = appearance.accentColor
 end
 
 function appearance.lerpColorRGBA(c1, c2, t)
@@ -494,7 +1184,7 @@ local function getHotkeyString(hotkey)
     return table.concat(parts, "+")
 end
 
-local function sanitizeFXName(fx_name)
+sanitizeFXName = function(fx_name)
     if not fx_name or fx_name == "" then return "_unknown_" end
     local sanitized = fx_name:gsub("[|<>:\"/\\?*\n\r]", "_")
     sanitized = sanitized:gsub("^%s+", ""):gsub("%s+$", "")
@@ -502,30 +1192,36 @@ local function sanitizeFXName(fx_name)
     return sanitized
 end
 
-local function ensurePresetDirectory(path)
+ensurePresetDirectory = function(path)
     if not path or path == "" then return false end
-    if reaper.RecursiveCreateDirectory then
-        return reaper.RecursiveCreateDirectory(path, 0) > 0
-    end
-    return false
+    if not reaper.RecursiveCreateDirectory then return false end
+
+    -- Do not treat a 0 return as "directory unusable": on an already-created folder
+    -- the API return value is not a reliable existence/writability test for our purposes.
+    -- The following io.open at the actual write site is the authoritative check.
+    reaper.RecursiveCreateDirectory(path, 0)
+    return true
 end
 
 local function copyFile(source, destination)
     if not source or source == "" or not destination or destination == "" then return false end
     local sourceFile = io.open(source, "rb")
     if not sourceFile then return false end
-    local content = sourceFile:read("*all")
-    sourceFile:close()
-
     local destinationFile = io.open(destination, "wb")
-    if not destinationFile then return false end
-    destinationFile:write(content or "")
-    destinationFile:close()
-    return true
+    if not destinationFile then sourceFile:close(); return false end
+    local ok = true
+    while true do
+        local chunk = sourceFile:read(1024 * 1024)
+        if not chunk then break end
+        if not destinationFile:write(chunk) then ok = false break end
+    end
+    destinationFile:flush()
+    sourceFile:close(); destinationFile:close()return ok
 end
 
 local function openManagerDataFolder()
     ensurePresetDirectory(managerDataRoot)
+ensurePresetDirectory(managerDataRoot .. "/Plugins")
     if reaper.CF_ShellExecute then
         reaper.CF_ShellExecute(managerDataRoot)
     elseif reaper.ExecProcess then
@@ -587,15 +1283,20 @@ local function SaveAllFXFolders()
 end
 
 local function LoadFoldersForFX(fx_name)
-    local key = sanitizeFXName(fx_name)
-    if not allFXFolders[key] then allFXFolders[key] = {} end
-    folders = allFXFolders[key]
+    activatePluginMeta(fx_name, presetFile)
+    if not activePluginMeta then folders = {} end
 end
 
 local function SaveFolders()
+    if activePluginMeta then
+        activePluginMeta.folders = folders
+        markMetadataDirty()
+        return true
+    end
     local key = sanitizeFXName(currentFXName)
     if key and key ~= "_unknown_" then allFXFolders[key] = folders end
     SaveAllFXFolders()
+    return true
 end
 
 local function LoadAllPresetFolders()
@@ -614,39 +1315,55 @@ local function LoadAllPresetFolders()
 end
 
 local function SaveAllPresetFolders()
+    -- Legacy compatibility writer. Normal operation uses one Plugins/<plugin>.txt file.
     local f = io.open(preset_folders_file, "w")
     if f then
         for fxName, presetMap in pairs(allPresetFolders) do
-            for presetName, folderName in pairs(presetMap) do
-                f:write(fxName .. "|" .. presetName .. "|" .. folderName .. "\n")
-            end
+            for presetName, folderName in pairs(presetMap) do f:write(fxName .. "|" .. presetName .. "|" .. folderName .. "\n") end
         end
         f:close()
     end
 end
 
 local function LoadPresetFoldersForFX(fx_name)
-    local key = sanitizeFXName(fx_name)
-    if not allPresetFolders[key] then allPresetFolders[key] = {} end
-    presetFolders = allPresetFolders[key]
-    invalidatePresetViewCache()
+    if activePluginMeta then presetFolders = activePluginMeta.presetFolders
+    else
+        local key = sanitizeFXName(fx_name)
+        if not allPresetFolders[key] then allPresetFolders[key] = {} end
+        presetFolders = allPresetFolders[key]
+    end
+    invalidateFilterOnly()
 end
 
 local function SavePresetFolders()
+    if activePluginMeta then
+        activePluginMeta.presetFolders = presetFolders
+        markMetadataDirty()
+        return true
+    end
     local key = sanitizeFXName(currentFXName)
     if key and key ~= "_unknown_" then allPresetFolders[key] = presetFolders end
     SaveAllPresetFolders()
+    return true
 end
 
-local function setPresetFolder(presetName, folderName)
-    if not presetName or type(presetName) ~= "string" then return end
-    if folderName then
-        presetFolders[presetName] = folderName
-    else
-        presetFolders[presetName] = nil
+local function setPresetFolder(presetID, folderName)
+    if not presetID or type(presetID) ~= "string" or presetID == "" then return end
+    if folderName then presetFolders[presetID] = folderName else presetFolders[presetID] = nil end
+    markMetadataDirty()
+    invalidateFilterOnly()
+end
+
+function batchAssignFolder(indexSet, folderName)
+    local changed = false
+    for idx,v in pairs(indexSet or {}) do
+        if v and presetList[idx] then
+            local id = presetList[idx].id
+            if id and presetFolders[id] ~= folderName then presetFolders[id] = folderName; changed = true end
+        end
     end
-    SavePresetFolders()
-    invalidatePresetViewCache()
+    if changed then markMetadataDirty(); invalidateFilterOnly() end
+    return changed
 end
 
 local function addFolder(name)
@@ -673,7 +1390,7 @@ local function deleteFolder(index)
     SaveFolders()
     if currentFolder == folderName then currentFolder = nil end
     selectedFolderIndex = nil
-    invalidatePresetViewCache()
+    invalidateFilterOnly()
 end
 
 local function renameFolder(index, newName)
@@ -691,7 +1408,7 @@ local function renameFolder(index, newName)
     folders[index] = trimmed
     SaveFolders()
     if currentFolder == oldName then currentFolder = trimmed end
-    invalidatePresetViewCache()
+    invalidateFilterOnly()
     return true
 end
 
@@ -940,33 +1657,43 @@ local function popTheme(count)
 end
 
 local function LoadColorMarkers()
-    colorMarkers = {}
+    legacyColorMarkers = {}
     local f = io.open(colorMarkerFile, "r")
     if f then
         for line in f:lines() do
             local name, color = line:match("^(.+)|(%d+)$")
-            if name and color then colorMarkers[name] = tonumber(color) end
+            if name and color then legacyColorMarkers[name] = tonumber(color) end
         end
         f:close()
     end
+    if not activePluginMeta then colorMarkers = legacyColorMarkers end
     invalidatePresetViewCache()
 end
 
 local function SaveColorMarkers()
+    if activePluginMeta then
+        activePluginMeta.colors = colorMarkers
+        markMetadataDirty()
+        return true
+    end
     local f = io.open(colorMarkerFile, "w")
     if f then
         for name, color in pairs(colorMarkers) do f:write(name .. "|" .. tostring(color) .. "\n") end
-        f:close()
+        f:close();return true
     end
+    return false
 end
 
-local function setColorMarker(presetName, color)
-    if color then colorMarkers[presetName] = color else colorMarkers[presetName] = nil end
-    SaveColorMarkers()
-    invalidatePresetViewCache()
+local function setColorMarker(presetID, color)
+    if not presetID or presetID == '' then return end
+    local oldColor = colorMarkers[presetID]
+    if oldColor == color then return end
+    if color then colorMarkers[presetID] = color else colorMarkers[presetID] = nil end
+    markMetadataDirty()
+    invalidateColorDependentView()
 end
 
-local function getColorMarker(presetName) return colorMarkers[presetName] end
+local function getColorMarker(presetID) return presetID and colorMarkers[presetID] or nil end
 
 local function LoadTags()
     tags = {}
@@ -1037,145 +1764,388 @@ local function findFilteredPosition(originalIndex)
 end
 
 local function getFileModTime(filepath)
-    if not filepath or filepath == "" then return 0 end
-    if not reaper.file_exists(filepath) then return 0 end
-    local f = io.open(filepath, "rb")
-    if f then
-        local size = f:seek("end") or 0
-        f:close()
-        return size
-    end
-    return 0
+    -- Historical name kept for compatibility; now returns size + bounded sampled hash.
+    return getCheapFileSignature(filepath)
 end
 
-local function loadPresets(tr, fx)
-    if not tr then return end
-    presetList = {}
-    presetFileExt = nil
-    presetFile = reaper.TrackFX_GetUserPresetFilename(tr, fx)
-    if not presetFile or presetFile == "" then
-        lastPresetCount = 0
-        lastPresetFileTime = 0
+function processPresetLine(job, line, lineStart, lineEnd, eol)
+    if line:sub(-1) == '\r' then line = line:sub(1,-2) end
+    if line:sub(1,4) == 'Ext=' then job.ext = line:sub(5); return end
+    local ordinal = line:match('^%[Preset(%d+)%]$')
+    if ordinal then
+        if not job.firstPresetStart then job.firstPresetStart = lineStart end
+        if job.current and job.current.name then
+            job.current.sourceEnd = lineStart
+            finalizePresetFingerprint(job.current)
+            job.list[#job.list+1] = job.current
+        end
+        job.current = {
+            ordinal = tonumber(ordinal) or #job.list,
+            sourceStart = lineStart, bodyStart = lineEnd,
+            sourceGeneration = job.generation,
+            tooltip = ''
+        }
         return
     end
-    local file = io.open(presetFile, "r")
-    if not file then
-        lastPresetCount = 0
-        lastPresetFileTime = 0
-        return
+    local p = job.current
+    if not p then return end
+    feedPresetFingerprint(p, line)
+    if line:sub(1,5) == 'Name=' then
+        local name=line:sub(6); p.name=name; p.nameLower=name:lower(); p.originalName=name; p.nameStart=lineStart; return
     end
-
-    local content = file:read("*all")
-    file:close()
-
-    local lines = {}
-    for line in content:gmatch("([^\n]*)\n?") do
-        table.insert(lines, line)
+    if line:sub(1,4) == 'Len=' then p.len=line:sub(5); return end
+    if line:sub(1,8) == 'Tooltip=' then
+        local tt=line:sub(9); p.tooltip=tt; p.tooltipLower=tt:lower(); p.originalTooltip=tt; p.hadTooltip=true; return
     end
+end
 
-    local currentPreset = nil
-    for i = 1, #lines do
-        local line = lines[i]
-        if line:match("^Ext=") then
-            presetFileExt = line:sub(5)
-        elseif line:match("^%[Preset%d+%]") then
-            if currentPreset and currentPreset.name then
-                table.insert(presetList, currentPreset)
-            end
-            currentPreset = { data = {}, tooltip = "" }
-        elseif currentPreset then
-            local name = line:match("^Name=(.+)$")
-            local len = line:match("^Len=(.+)$")
-            local tooltip = line:match("^Tooltip=(.*)$")
-            if name then
-                currentPreset.name = name
-                currentPreset.nameLower = name:lower()
-            elseif len then
-                currentPreset.len = len
-            elseif tooltip then
-                currentPreset.tooltip = tooltip
-                currentPreset.tooltipLower = tooltip:lower()
-            elseif line:match("^Data") then
-                table.insert(currentPreset.data, line)
+function refreshMetaAfterBankChange()
+    if activePluginMeta and activePluginMeta.bankPath == presetFile then
+        syncActiveMetaIndexState()
+        markMetadataDirty()
+    end
+end
+
+function finalizeLoadJob(job)
+    if job.current and job.current.name then
+        job.current.sourceEnd = job.fileSize
+        finalizePresetFingerprint(job.current)
+        job.list[#job.list+1] = job.current
+    end
+    if job.file then job.file:close(); job.file=nil end
+    if activeLoadJob ~= job or job.generation ~= bankGeneration then return end
+
+    if job.mode == 'append' then
+        local usedIDs = {}
+        for _,p in ipairs(presetList) do if p.id then usedIDs[p.id] = true end end
+        if job.delta ~= 0 then
+            for _,p in ipairs(presetList) do
+                p.sourceStart = (p.sourceStart or 0) + job.delta
+                p.bodyStart = (p.bodyStart or 0) + job.delta
+                p.sourceEnd = (p.sourceEnd or 0) + job.delta
+                if p.nameStart and p.nameStart >= 0 then p.nameStart = p.nameStart + job.delta end
+                p.sourceGeneration = job.generation
             end
         end
-    end
-    if currentPreset and currentPreset.name then
-        table.insert(presetList, currentPreset)
+        for _,p in ipairs(job.list) do
+            finalizePresetFingerprint(p)
+            p.originalIndex = #presetList + 1
+            p.ordinal = p.originalIndex - 1
+            p.id = makeStablePresetID(p, usedIDs, activePluginMeta and activePluginMeta.identity or '')
+            p.tooltipLower = p.tooltipLower or (p.tooltip or ''):lower()
+            p.sourceGeneration = job.generation
+            presetList[#presetList+1] = p
+            if job.postLoadFolder then presetFolders[p.id] = job.postLoadFolder end
+        end
+        bankHeaderEnd = job.newHeaderEnd
+        bankHeaderNorm = job.newHeaderNorm
+        lastPresetCount = #presetList
+        lastPresetFileTime = job.sourceSig
+        activePresetName = getActivePresetName()
+        bankLoading = false
+        activeLoadJob = nil
+        if #job.list > 0 and job.postLoadFolder then markMetadataDirty() end
+        refreshMetaAfterBankChange()
+        invalidatePresetViewCache()
+        showFeedback('✓ Presets updated')
+        profEnd('appendPresets', job.t0, job.visited)
+        return
     end
 
-    for _, preset in ipairs(presetList) do
-        if not preset.nameLower and preset.name then preset.nameLower = preset.name:lower() end
-        if not preset.tooltipLower then preset.tooltipLower = (preset.tooltip or ""):lower() end
+    local previousIndex = activePluginMeta and activePluginMeta.index or nil
+    for i,p in ipairs(job.list) do
+        finalizePresetFingerprint(p)
+        p.originalIndex = i
+        p.ordinal = i-1
+        p.tooltipLower = p.tooltipLower or (p.tooltip or ''):lower()
+        p.sourceGeneration = job.generation
     end
+    reconcileStablePresetIDs(job.list, previousIndex, activePluginMeta and activePluginMeta.identity or '')
+    presetList = job.list
+    if activePluginMeta then bindMetadataToStableIDs(activePluginMeta, presetList) end
+    bankHeaderNorm, bankHeaderEnd = readNormalizedBankHeader(presetFile)
+    presetFileExt = job.ext
     lastPresetCount = #presetList
-    lastPresetFileTime = getFileModTime(presetFile)
+    lastPresetFileTime = job.sourceSig or getCheapFileSignature(presetFile)
     activePresetName = getActivePresetName()
+    bankLoading = false
+    if job.postLoadFolder then
+        local known = job.oldNames or {}
+        local changed=false
+        for _,p in ipairs(presetList) do
+            if not known[p.name] then presetFolders[p.id]=job.postLoadFolder; changed=true end
+        end
+        if changed then markMetadataDirty() end
+    end
+    activeLoadJob = nil
+    refreshMetaAfterBankChange()
     invalidatePresetViewCache()
+    profEnd('loadPresets', job.t0, job.visited)
 end
 
-local function savePresets()
-    if not presetFile or presetFile == "" then return false end
-    local file = io.open(presetFile, "w")
-    if not file then return false end
-
-    file:write("[General]\n")
-    if presetFileExt then
-        file:write("Ext=" .. presetFileExt .. "\n")
+function stepLoadJob(job, budgetEnd)
+    if job.cancelled or job.generation ~= bankGeneration then
+        if job.file then job.file:close() end
+        return true
     end
-    file:write("NbPresets=" .. tostring(#presetList) .. "\n\n")
-
-    for i, preset in ipairs(presetList) do
-        if preset.name and preset.data and preset.len then
-            file:write("[Preset" .. tostring(i - 1) .. "]\n")
-            for _, dataLine in ipairs(preset.data) do
-                file:write(dataLine .. "\n")
+    while reaper.time_precise() < budgetEnd do
+        local chunkStart = job.readPos
+        local chunk = job.file:read(65536)if not chunk then
+            if #job.lineBuf > 0 or job.lineTruncated then
+                processPresetLine(job, job.lineBuf, job.lineStart, job.fileSize, '')
             end
-            file:write("Len=" .. preset.len .. "\n")
-            file:write("Name=" .. preset.name .. "\n")
-            if preset.tooltip and preset.tooltip ~= "" then
-                file:write("Tooltip=" .. preset.tooltip .. "\n")
+            finalizeLoadJob(job)
+            return true
+        end
+        job.readPos = job.readPos + #chunk
+        local pos = 1
+        while pos <= #chunk do
+            local nl = chunk:find('\n', pos, true)
+            if nl then
+                local seg = chunk:sub(pos, nl - 1)
+                if not job.lineTruncated then
+                    local room = 65536 - #job.lineBuf
+                    if #seg <= room then job.lineBuf = job.lineBuf .. seg
+                    else job.lineBuf = job.lineBuf .. seg:sub(1, math.max(0, room)); job.lineTruncated = true end
+                end
+                local lineEnd = chunkStart + nl
+                processPresetLine(job, job.lineBuf, job.lineStart, lineEnd, '\n')
+                job.visited = job.visited + 1
+                job.lineBuf, job.lineTruncated = '', false
+                job.lineStart = lineEnd
+                pos = nl + 1
+            else
+                local seg = chunk:sub(pos)
+                if not job.lineTruncated then
+                    local room = 65536 - #job.lineBuf
+                    if #seg <= room then job.lineBuf = job.lineBuf .. seg
+                    else job.lineBuf = job.lineBuf .. seg:sub(1, math.max(0, room)); job.lineTruncated = true end
+                end
+                break
             end
-            file:write("\n")
         end
     end
+    return false
+end
 
-    file:close()
+function useCachedPluginIndex(meta, sig, generation)
+    if not meta or not meta.indexComplete or meta.indexSignature ~= sig or meta.needsV5Migration then return false end
+    for _,p in ipairs(meta.index or {}) do
+        if not p.id or p.id == '' or not p.fingerprint or p.fingerprint == '' then return false end
+    end
+    presetList = meta.index or {}
+    for i,p in ipairs(presetList) do
+        p.originalIndex = i
+        p.ordinal = p.ordinal or (i-1)
+        p.sourceGeneration = generation
+        p.nameLower = p.nameLower or (p.name or ''):lower()
+        p.tooltipLower = p.tooltipLower or (p.tooltip or ''):lower()
+        p.originalName = p.name
+        p.originalTooltip = p.tooltip or ''
+    end
+    bankHeaderEnd = meta.headerEnd or 0
+    bankHeaderNorm = meta.headerNorm or ''
+    if bankHeaderNorm == '' then bankHeaderNorm, bankHeaderEnd = readNormalizedBankHeader(presetFile) end
+    presetFileExt = meta.ext ~= '' and meta.ext or nil
     lastPresetCount = #presetList
-    lastPresetFileTime = getFileModTime(presetFile)
+    lastPresetFileTime = sig
+    bankLoading = false
+    activeLoadJob = nil
+    activePresetName = getActivePresetName()
     invalidatePresetViewCache()
     return true
 end
 
-local function checkForExternalPresetChanges()
-    if not presetFile or presetFile == "" or not track or not fxnum then return end
-    local now = reaper.time_precise()
-    if now < nextExternalCheckTime then return end
-    nextExternalCheckTime = now + 0.4
-    local currentFileTime = getFileModTime(presetFile)
-    if currentFileTime ~= lastPresetFileTime then
-        local oldPresetNames = {}
-        for _, preset in ipairs(presetList) do
-            oldPresetNames[preset.name] = true
+local function loadPresets(tr, fx, keepSnapshot)
+    if not tr then return end
+    bankGeneration = bankGeneration + 1
+    local generation = bankGeneration
+    if activeLoadJob and activeLoadJob.file then activeLoadJob.file:close() end
+    activeLoadJob = nil
+    presetFileExt = nil
+    presetFile = reaper.TrackFX_GetUserPresetFilename(tr, fx)
+    if not keepSnapshot then presetList = {} end
+    invalidatePresetViewCache()
+    if not presetFile or presetFile == '' then lastPresetCount=0; lastPresetFileTime='0'; bankLoading=false; return end
+
+    if currentFXName and currentFXName ~= '' then activatePluginMeta(currentFXName, presetFile) end
+    local sig = getCheapFileSignature(presetFile)
+    if activePluginMeta and useCachedPluginIndex(activePluginMeta, sig, generation) then return end
+
+    -- Distinguish the first index build from a genuine change of an already cached bank.
+    if activePluginMeta and activePluginMeta.needsV5Migration then
+        showFeedback('Upgrading preset index...')
+    elseif activePluginMeta and activePluginMeta.loadedFromDisk then
+        showFeedback('Preset bank changed; rebuilding index...')
+    else
+        showFeedback('Building preset index...')
+    end
+
+    local f = io.open(presetFile, 'rb')
+    if not f then lastPresetCount=0; lastPresetFileTime='0'; bankLoading=false; return end
+    local size = f:seek('end') or 0; f:seek('set',0)
+    bankLoading = true
+    activeLoadJob = {
+        file=f, fileSize=size, readPos=0, lineStart=0, lineBuf='', lineTruncated=false,
+        list={}, ext=nil, current=nil, generation=generation, visited=0, t0=profBegin(), sourceSig=sig, mode='full'
+    }
+end
+
+function copyRange(src, dst, startPos, endPos)
+    if endPos <= startPos then return true end
+    src:seek('set', startPos)
+    local left = endPos - startPos
+    while left > 0 do
+        local chunk = src:read(math.min(left, 1024*1024))
+        if not chunk or #chunk == 0 then return false end
+        if not dst:write(chunk) then return false end
+        left = left - #chunk
+    end
+    return true
+end
+
+function writeEditedPresetBody(src, dst, preset)
+    src:seek('set', preset.bodyStart)
+    local left = preset.sourceEnd - preset.bodyStart
+    local sawTooltip, insertedTooltip = false, false
+    while left > 0 do
+        local line = src:read('*L')
+        if not line then break end
+        if #line > left then line = line:sub(1,left) end
+        left = left - #line
+        local core = line:gsub('[\r\n]+$','')
+        local eol = line:sub(#core+1)
+        if core:match('^Name=') then
+            dst:write('Name=', preset.name or '', eol ~= '' and eol or '\n')
+        elseif core:match('^Tooltip=') then
+            sawTooltip = true
+            if preset.tooltip and preset.tooltip ~= '' then dst:write('Tooltip=', preset.tooltip, eol ~= '' and eol or '\n') end
+        elseif core == '' and not sawTooltip and not insertedTooltip and preset.tooltip and preset.tooltip ~= '' then
+            dst:write('Tooltip=', preset.tooltip, eol ~= '' and eol or '\n')
+            dst:write(line); insertedTooltip=true
+        else
+            dst:write(line)
         end
+    end
+    if not sawTooltip and not insertedTooltip and preset.tooltip and preset.tooltip ~= '' then dst:write('Tooltip=',preset.tooltip,'\n') end
+    return true
+end
 
-        loadPresets(track, fxnum)
+local function savePresets()
+    if bankLoading then showFeedback('Preset bank is still loading', 0xFFAA44FF); return false end
+    if not presetFile or presetFile == '' then return false end
+    local t0=profBegin()
+    local sourceSig = getCheapFileSignature(presetFile)
+    local src=io.open(presetFile,'rb'); if not src then return false end
+    local tmp=presetFile..'.fsr_tmp'
+    local dst=io.open(tmp,'wb'); if not dst then src:close(); return false end
+    local newRanges = {}
+    local newHeaderEnd = 0
+    local ok,err=pcall(function()
+        local firstStart = bankHeaderEnd or 0
+        local header=''
+        if firstStart>0 then src:seek('set',0); header=src:read(firstStart) or '' end
+        if header == '' then header='[General]\n' .. (presetFileExt and ('Ext='..presetFileExt..'\n') or '') .. 'NbPresets=0\n\n' end
+        if header:find('NbPresets=%d+') then header=header:gsub('NbPresets=%d+','NbPresets='..tostring(#presetList),1)
+        else header=header .. 'NbPresets='..tostring(#presetList)..'\n\n' end
+        dst:write(header)
+        newHeaderEnd = dst:seek('cur') or #header
+        for i,p in ipairs(presetList) do
+            local sectionStart = dst:seek('cur') or 0
+            dst:write('[Preset',tostring(i-1),']\n')
+            local bodyStart = dst:seek('cur') or 0
+            local dirty = (p.name ~= p.originalName) or ((p.tooltip or '') ~= (p.originalTooltip or ''))
+            if dirty then writeEditedPresetBody(src,dst,p)
+            else copyRange(src,dst,p.bodyStart,p.sourceEnd) end
+            local sectionEnd = dst:seek('cur') or bodyStart
+            local nameStart = -1
+            if p.nameStart and p.nameStart >= 0 and p.bodyStart then nameStart = bodyStart + (p.nameStart - p.bodyStart) end
+            newRanges[i] = {sourceStart=sectionStart, bodyStart=bodyStart, sourceEnd=sectionEnd, nameStart=nameStart}
+        end
+        dst:flush()
+    end)
+    src:close(); dst:close();if not ok then os.remove(tmp); return false end
+    if getCheapFileSignature(presetFile) ~= sourceSig then os.remove(tmp); showFeedback('Preset bank changed externally; save cancelled',0xFF4444FF); return false end
+    local replaced,why=safeReplaceFile(tmp,presetFile)
+    if not replaced then showFeedback('Save failed: '..tostring(why),0xFF4444FF); return false end
 
-        if currentFolder then
-            local newCount = 0
-            for _, preset in ipairs(presetList) do
-                if not oldPresetNames[preset.name] then
-                    setPresetFolder(preset.name, currentFolder)
-                    newCount = newCount + 1
+    bankGeneration = bankGeneration + 1
+    for i,p in ipairs(presetList) do
+        local r = newRanges[i]
+        p.sourceStart, p.bodyStart, p.sourceEnd, p.nameStart = r.sourceStart, r.bodyStart, r.sourceEnd, r.nameStart
+        p.ordinal, p.originalIndex, p.sourceGeneration = i-1, i, bankGeneration
+        p.originalName, p.originalTooltip = p.name, p.tooltip or ''
+    end
+    bankHeaderEnd = newHeaderEnd
+    bankHeaderNorm, bankHeaderEnd = readNormalizedBankHeader(presetFile)
+    lastPresetCount=#presetList
+    lastPresetFileTime=getCheapFileSignature(presetFile)
+    refreshMetaAfterBankChange()
+    invalidatePresetViewCache(); profEnd('savePresets',t0,#presetList)
+    return true
+end
+
+function verifyAppendAnchors(path, delta)
+    if #presetList == 0 then return true end
+    local f = io.open(path, 'rb'); if not f then return false end
+    local samples = {1, math.floor(#presetList/4), math.floor(#presetList/2), math.floor(#presetList*3/4), #presetList}
+    local seen = {}
+    for _,idx in ipairs(samples) do
+        if idx < 1 then idx = 1 end
+        if not seen[idx] then
+            seen[idx]=true
+            local p=presetList[idx]
+            if p and p.sourceStart then
+                f:seek('set', p.sourceStart + delta)
+                local sec=(f:read('*l') or ''):gsub('\r$','')
+                if sec ~= ('[Preset'..tostring(p.ordinal or (idx-1))..']') then f:close(); return false end
+                if p.nameStart and p.nameStart >= 0 then
+                    f:seek('set', p.nameStart + delta)
+                    local nl=(f:read('*l') or ''):gsub('\r$','')
+                    if nl ~= ('Name='..tostring(p.name or '')) then f:close(); return false end
                 end
             end
-            if newCount > 0 then
-                showFeedback(newCount .. " preset(s) added to: " .. currentFolder, 0x44FF44FF)
-            else
-                showFeedback("Presets updated", 0x44FF44FF)
-            end
+        end
+    end
+    f:close();return true
+end
+
+function tryStartIncrementalAppend(newSig)
+    local oldSize, newSize = signatureSize(lastPresetFileTime), signatureSize(newSig)
+    if oldSize <= 0 or newSize <= oldSize then return false end
+    local newNorm, newHeaderEnd = readNormalizedBankHeader(presetFile)
+    if bankHeaderNorm == '' or newNorm ~= bankHeaderNorm then return false end
+    local delta = newHeaderEnd - (bankHeaderEnd or 0)
+    local appendStart = oldSize + delta
+    if appendStart < newHeaderEnd or appendStart >= newSize then return false end
+    if not verifyAppendAnchors(presetFile, delta) then return false end
+    local f=io.open(presetFile,'rb'); if not f then return false end
+    f:seek('set',appendStart)
+    bankGeneration=bankGeneration+1
+    bankLoading=true
+    activeLoadJob={
+        file=f,fileSize=newSize,readPos=appendStart,lineStart=appendStart,lineBuf='',lineTruncated=false,
+        list={},ext=presetFileExt,current=nil,generation=bankGeneration,visited=0,t0=profBegin(),sourceSig=newSig,
+        mode='append',delta=delta,newHeaderEnd=newHeaderEnd,newHeaderNorm=newNorm,postLoadFolder=currentFolder
+    }
+    return true
+end
+
+local function checkForExternalPresetChanges()
+    if not presetFile or presetFile == '' or not track or fxnum == nil or bankLoading then return end
+    local now=reaper.time_precise(); if now<nextExternalCheckTime then return end
+    nextExternalCheckTime=now+0.8
+    local sig=getCheapFileSignature(presetFile)
+    if sig ~= lastPresetFileTime then
+        if tryStartIncrementalAppend(sig) then return end
+        local old={}; for _,p in ipairs(presetList) do old[p.name]=(old[p.name] or 0)+1 end
+        local targetFolder=currentFolder
+        loadPresets(track,fxnum,true)
+        if activeLoadJob then activeLoadJob.postLoadFolder=targetFolder; activeLoadJob.oldNames=old end
+        if activePluginMeta and activePluginMeta.loadedFromDisk then
+            showFeedback('Preset bank changed; rebuilding index...')
         else
-            showFeedback("Presets updated", 0x44FF44FF)
+            showFeedback('Building preset index...')
         end
     end
 end
@@ -1316,7 +2286,7 @@ local function restartFocusedFX()
     if refreshFX(tr, fx) then
         track = tr
         fxnum = fx
-        showFeedback("Active FX restarted", 0x44FF44FF)
+        showFeedback("✓ FX restarted")
         return true
     end
     return false
@@ -1366,10 +2336,7 @@ end
 
 local function saveNewPreset(presetName)
     if not track or not fxnum or presetName == "" then return false end
-
-    -- Refresh the native RPL before appending a new preset so additions made
-    -- from the plug-in window are already present in the file we extend.
-    loadPresets(track, fxnum)
+    if bankLoading then showFeedback('Preset bank is still loading', 0xFFAA44FF); return false end
 
     local base64bytes = {['A']=0,['B']=1,['C']=2,['D']=3,['E']=4,['F']=5,['G']=6,['H']=7,['I']=8,['J']=9,['K']=10,['L']=11,['M']=12,
                          ['N']=13,['O']=14,['P']=15,['Q']=16,['R']=17,['S']=18,['T']=19,['U']=20,['V']=21,['W']=22,['X']=23,['Y']=24,['Z']=25,
@@ -1421,33 +2388,48 @@ local function saveNewPreset(presetName)
         return string.sub(string.format("%X", Sum), -2, -1)
     end
     local function Write_to_File(PresetFile, Preset_HEX, Preset_Name)
-        local file, Nprsts
-        if reaper.file_exists(PresetFile) then
-            local ret_r
-            ret_r, Nprsts = reaper.BR_Win32_GetPrivateProfileString("General", "NbPresets", "", PresetFile)
-            Nprsts = math.tointeger(Nprsts)
-            reaper.BR_Win32_WritePrivateProfileString("General", "NbPresets", math.tointeger(Nprsts+1), PresetFile)
+        if not PresetFile or PresetFile == '' then return false end
+        local sourceSig = reaper.file_exists(PresetFile) and getCheapFileSignature(PresetFile) or '0'
+        local oldSize = signatureSize(sourceSig)
+        local tmp = PresetFile .. '.fsr_tmp'
+        local src = io.open(PresetFile, 'rb')
+        local dst = io.open(tmp, 'wb')
+        if not dst then if src then src:close() end return false end
+        local n = lastPresetCount or #presetList
+        if src then
+            local headerDone=false
+            while true do
+                local line=src:read('*L')
+                if not line then break end
+                if not headerDone and line:match('^NbPresets=') then
+                    dst:write('NbPresets=', tostring(n+1), line:match('\r\n$') and '\r\n' or '\n')
+                    headerDone=true
+                else dst:write(line) end
+            end
+            src:close()
+            if not headerDone then dst:write('\nNbPresets=',tostring(n+1),'\n') end
         else
-            Nprsts = 0
-            file = io.open(PresetFile, "w")
-            file:write("[General]\nNbPresets="..Nprsts+1)
-            file:close()
+            dst:write('[General]\nNbPresets=',tostring(n+1),'\n')
         end
-        file = io.open(PresetFile, "r+")
-        file:seek("end")
-        file:write("\n[Preset"..Nprsts.."]")
-        local Len = #Preset_HEX
-        local s = 1
-        for i=1, math.ceil(Len/32768) do
-            local Ndata
-            if i==1 then Ndata = "\nData=" else Ndata = "\nData_".. i-1 .."=" end
-            local Data = Preset_HEX:sub(s, s+32767)
-            local Sum = Get_CtrlSum(Data)
-            file:write(Ndata, Data, Sum)
-            s = s+32768
+        local appendBoundary = dst:seek('cur') or 0
+        dst:write('\n')
+        local sectionStart = dst:seek('cur') or (appendBoundary+1)
+        dst:write('[Preset',tostring(n),']\n')
+        local bodyStart = dst:seek('cur') or 0
+        local Len=#Preset_HEX; local pos=1; local part=0
+        while pos<=Len do
+            local Data=Preset_HEX:sub(pos,pos+32767)
+            local Sum=Get_CtrlSum(Data)
+            if part==0 then dst:write('Data=',Data,Sum,'\n') else dst:write('Data_',tostring(part),'=',Data,Sum,'\n') end
+            part=part+1; pos=pos+32768
         end
-        file:write("\nName=".. Preset_Name .."\nLen=".. Len//2 .."\n")
-        file:close()
+        local nameStart = dst:seek('cur') or 0
+        dst:write('Name=',Preset_Name,'\nLen=',tostring(Len//2),'\n')
+        local sourceEnd = dst:seek('cur') or 0
+        dst:flush(); dst:close();if reaper.file_exists(PresetFile) and getCheapFileSignature(PresetFile) ~= sourceSig then os.remove(tmp); return false end
+        local ok,why = safeReplaceFile(tmp,PresetFile)
+        if not ok then return false,why end
+        return true,{oldSize=oldSize,delta=appendBoundary-oldSize,sourceStart=sectionStart,bodyStart=bodyStart,sourceEnd=sourceEnd,nameStart=nameStart,len=tostring(Len//2)}
     end
     local function Get_FX_Data(tr, fx)
         local fx_cnt = reaper.TrackFX_GetCount(tr)
@@ -1468,72 +2450,99 @@ local function saveNewPreset(presetName)
     local FX_Type, FX_Chunk, PresetFile = Get_FX_Data(track, fxnum)
     if FX_Chunk and PresetFile then
         local Preset_HEX = FX_Chunk_to_HEX(FX_Type, FX_Chunk, presetName)
-        Write_to_File(PresetFile, Preset_HEX, presetName)
+        local wrote, info = Write_to_File(PresetFile, Preset_HEX, presetName)
+        if not wrote then showFeedback("Could not save preset bank", 0xFF4444FF); return false end
         presetFile = PresetFile
-        reaper.TrackFX_SetPreset(track, fxnum, presetName)
-        loadPresets(track, fxnum)
-        activePresetName = presetName
-        if currentFolder then
-            setPresetFolder(presetName, currentFolder)
+        bankGeneration = bankGeneration + 1
+        if info and info.delta ~= 0 then
+            for _,p in ipairs(presetList) do
+                p.sourceStart=(p.sourceStart or 0)+info.delta; p.bodyStart=(p.bodyStart or 0)+info.delta; p.sourceEnd=(p.sourceEnd or 0)+info.delta
+                if p.nameStart and p.nameStart >= 0 then p.nameStart=p.nameStart+info.delta end
+                p.sourceGeneration=bankGeneration
+            end
         end
+        local np={name=presetName,nameLower=presetName:lower(),originalName=presetName,tooltip='',tooltipLower='',originalTooltip='',
+                  len=info and info.len or '',ordinal=#presetList,originalIndex=#presetList+1,
+                  sourceStart=info and info.sourceStart or 0,bodyStart=info and info.bodyStart or 0,sourceEnd=info and info.sourceEnd or 0,
+                  nameStart=info and info.nameStart or -1,sourceGeneration=bankGeneration,hadTooltip=false}
+        do
+            local pos, part = 1, 0
+            while pos <= #Preset_HEX do
+                local Data = Preset_HEX:sub(pos,pos+32767)
+                local Sum = Get_CtrlSum(Data)
+                local line = part==0 and ('Data='..Data..Sum) or ('Data_'..tostring(part)..'='..Data..Sum)
+                feedPresetFingerprint(np, line)
+                pos=pos+32768; part=part+1
+            end
+            feedPresetFingerprint(np, 'Len='..tostring(np.len or ''))
+            finalizePresetFingerprint(np)
+            local usedIDs={}; for _,p in ipairs(presetList) do if p.id then usedIDs[p.id]=true end end
+            np.id=makeStablePresetID(np,usedIDs,activePluginMeta and activePluginMeta.identity or '')
+        end
+        presetList[#presetList+1]=np
+        lastPresetCount=#presetList
+        bankHeaderNorm,bankHeaderEnd=readNormalizedBankHeader(PresetFile)
+        lastPresetFileTime=getCheapFileSignature(PresetFile)
+        reaper.TrackFX_SetPreset(track, fxnum, presetName)
+        activePresetName = presetName
+        if currentFolder then setPresetFolder(np.id, currentFolder) end
+        refreshMetaAfterBankChange()
+        invalidatePresetViewCache()
         return true
     end
     return false
 end
 
 local function getSelectedCount()
-    local count = 0
-    for _, v in pairs(selectedPresets) do if v then count = count + 1 end end
+    local count=0
+    for _,v in pairs(selectedPresets) do if v then count=count+1 end end
+    selectedCount=count
     return count
 end
 
 local function delete()
-    local hasSelection = false
-    local deleteIndices = {}
-    for i, selected in pairs(selectedPresets) do
-        if selected and presetList[i] then hasSelection = true table.insert(deleteIndices, i) end
+    if bankLoading then return end
+    if not presetFile or presetFile == '' then return end
+    local deleteSet, deleteIDs, k = {}, {}, 0
+    for i,v in pairs(selectedPresets) do
+        if v and presetList[i] then deleteSet[i]=true; if presetList[i].id then deleteIDs[presetList[i].id]=true end; k=k+1 end
     end
-    if not hasSelection then return end
-    if not presetFile or presetFile == "" then return end
-    table.sort(deleteIndices, function(a, b) return a > b end)
-    for _, index in ipairs(deleteIndices) do
-        local presetName = presetList[index].name
-        if colorMarkers[presetName] then colorMarkers[presetName] = nil end
-        if presetFolders[presetName] then presetFolders[presetName] = nil end
-        table.remove(presetList, index)
+    if k==0 then return end
+    local compact={}; local n=0
+    for i=1,#presetList do
+        if not deleteSet[i] then n=n+1; compact[n]=presetList[i] end
     end
-    SaveColorMarkers()
-    SavePresetFolders()
-    selectedPresets = {}
-    savePresets()
-    reopenFXUIFast()
+    for id in pairs(deleteIDs) do colorMarkers[id]=nil; presetFolders[id]=nil end
+    presetList=compact; selectedPresets={}; selectedCount=0
+    markMetadataDirty(); invalidatePresetViewCache()
+    if savePresets() then reopenFXUIFast() end
 end
 
 local function clearColorMarkersForSelectedPresets()
     local changed = false
     for i, selected in pairs(selectedPresets) do
         if selected and presetList[i] then
-            local presetName = presetList[i].name
-            if colorMarkers[presetName] then
-                colorMarkers[presetName] = nil
+            local presetID = presetList[i].id
+            if presetID and colorMarkers[presetID] then
+                colorMarkers[presetID] = nil
                 changed = true
             end
         end
     end
-    if changed then SaveColorMarkers() end
+    if changed then SaveColorMarkers(); invalidateColorDependentView() end
 end
 
 local function clearColorMarkersInActiveFolder()
     if not currentFolder or currentFolder == "" then return end
     local changed = false
     for _, preset in ipairs(presetList) do
-        local presetName = preset.name
-        if presetFolders[presetName] == currentFolder and colorMarkers[presetName] then
-            colorMarkers[presetName] = nil
+        local presetID = preset.id
+        if presetID and presetFolders[presetID] == currentFolder and colorMarkers[presetID] then
+            colorMarkers[presetID] = nil
             changed = true
         end
     end
-    if changed then SaveColorMarkers() end
+    if changed then SaveColorMarkers(); invalidateColorDependentView() end
 end
 
 local function navigatePreset(direction)
@@ -1641,99 +2650,211 @@ local function keyboard_shortcuts()
     return shift, ctrl, alt
 end
 
+function currentFilterSignature()
+    return table.concat({tostring(filterCacheVersion),searchQuery,tostring(filterByColor or ''),tostring(currentFolder or ''),sortMode},'\31')
+end
+
+function filterLessMode(mode, a, b)
+    local pa,pb=presetList[a],presetList[b]
+    if not pa or not pb then return a<b end
+    if mode=='az' then
+        local aa=pa.nameLower or (pa.name or ''):lower(); local bb=pb.nameLower or (pb.name or ''):lower()
+        if aa==bb then return a<b end; return aa<bb
+    elseif mode=='colors' then
+        local ca,cb=colorMarkers[pa.id],colorMarkers[pb.id]
+        local ap=ca and (colorPriority[ca] or 50) or 100; local bp=cb and (colorPriority[cb] or 50) or 100
+        if ap~=bp then return ap<bp end
+        local aa=pa.nameLower or (pa.name or ''):lower(); local bb=pb.nameLower or (pb.name or ''):lower()
+        if aa==bb then return a<b end; return aa<bb
+    elseif mode=='tooltips_az' then
+        local ta,tb=pa.tooltip or '',pb.tooltip or ''
+        if ta=='' and tb~='' then return false elseif ta~='' and tb=='' then return true end
+        local aa=pa.tooltipLower or ta:lower(); local bb=pb.tooltipLower or tb:lower()
+        if aa~=bb then return aa<bb end
+        local an=pa.nameLower or (pa.name or ''):lower(); local bn=pb.nameLower or (pb.name or ''):lower()
+        if an==bn then return a<b end; return an<bn
+    end
+    return a<b
+end
+
+function beginSortBuildJob(mode)
+    if mode=='none' then return true end
+    if sortCache[mode] then return true end
+    if sortBuildJob and sortBuildJob.mode==mode then return false end
+    sortBuildJob={mode=mode,phase='seed',i=1,src={},dst={},width=1,pairStart=1,merge=nil,t0=profBegin(),visited=0}
+    return false
+end
+
+function stepSortBuildJob(deadline)
+    local j=sortBuildJob
+    if not j then return end
+    local sliceT0=profBegin(); local visited0=j.visited
+    while reaper.time_precise()<deadline do
+        if j.phase=='seed' then
+            local n=#presetList
+            local limit=math.min(n,j.i+127)
+            while j.i<=limit do
+                j.src[j.i]=j.i
+                j.i=j.i+1; j.visited=j.visited+1
+            end
+            if j.i>n then
+                if n<2 then
+                    sortCache[j.mode]=j.src; sortBuildJob=nil
+                    profEnd('sortBuildLatency',j.t0,j.visited)
+                    profEnd('sortBuildSlice',sliceT0,j.visited-visited0)
+                    return
+                end
+                j.phase='sort'; j.width=1; j.pairStart=1
+            end
+        elseif j.phase=='sort' then
+            local n=#j.src
+            if j.width>=n then
+                sortCache[j.mode]=j.src
+                sortBuildJob=nil
+                profEnd('sortBuildLatency',j.t0,j.visited)
+                profEnd('sortBuildSlice',sliceT0,j.visited-visited0)
+                return
+            end
+            if not j.merge then
+                if j.pairStart>n then
+                    j.src,j.dst=j.dst,{}
+                    j.width=j.width*2; j.pairStart=1
+                else
+                    local l=j.pairStart; local m=math.min(l+j.width-1,n); local r=math.min(l+2*j.width-1,n)
+                    j.merge={m=m,r=r,a=l,b=m+1,k=l}; j.pairStart=r+1
+                end
+            else
+                local m=j.merge; local steps=0
+                while m.k<=m.r and steps<64 and reaper.time_precise()<deadline do
+                    local takeA
+                    if m.a>m.m then takeA=false
+                    elseif m.b>m.r then takeA=true
+                    else takeA=filterLessMode(j.mode,j.src[m.a],j.src[m.b]) end
+                    if takeA then j.dst[m.k]=j.src[m.a]; m.a=m.a+1 else j.dst[m.k]=j.src[m.b]; m.b=m.b+1 end
+                    m.k=m.k+1; steps=steps+1; j.visited=j.visited+1
+                end
+                if m.k>m.r then j.merge=nil end
+            end
+        end
+    end
+    profEnd('sortBuildSlice',sliceT0,j.visited-visited0)
+end
+
+function beginFilterJob(signature)
+    if filterJob then cancelFilterJob(true) end
+    local source=nil
+    if sortMode~='none' then
+        source=sortCache[sortMode]
+        if not source then beginSortBuildJob(sortMode); return false end
+    end
+    filterJob={signature=signature, version=filterCacheVersion, i=1, source=source,
+        sourceN=source and #source or #presetList, ids={}, result={}, query=searchQuery:lower(),
+        searchActive=(searchQuery~=''), color=filterByColor, folder=currentFolder,
+        visited=0, publishI=1, phase='filter', t0=profBegin()}
+    return true
+end
+
+function stepFilterJob(deadline)
+    local j=filterJob; if not j then return end
+    if j.signature~=currentFilterSignature() or j.version~=filterCacheVersion then cancelFilterJob(true); return end
+    local sliceT0=profBegin(); local visited0=j.visited
+    while reaper.time_precise()<deadline do
+        if j.phase=='filter' then
+            local limit=math.min(j.sourceN,j.i+63)
+            local noMetaFilters=(j.color==nil and j.folder==nil)
+            local searchActive=j.searchActive; local q=j.query
+            while j.i<=limit do
+                local pos=j.i
+                local idx=j.source and j.source[pos] or pos
+                local p=presetList[idx]
+                local ok=(p~=nil)
+                if ok and not noMetaFilters then
+                    if j.color~=nil and colorMarkers[p.id]~=j.color then ok=false end
+                    if ok and j.folder~=nil and presetFolders[p.id]~=j.folder then ok=false end
+                end
+                if ok and searchActive then
+                    local nl=p.nameLower or (p.name or ''):lower()
+                    if nl:find(q,1,true)==nil then
+                        local tl=p.tooltipLower or (p.tooltip or ''):lower()
+                        ok=(tl:find(q,1,true)~=nil)
+                    end
+                end
+                if ok then j.ids[#j.ids+1]=idx end
+                j.i=pos+1; j.visited=j.visited+1
+            end
+            if j.i>j.sourceN then j.phase='publish'; j.publishI=1 end
+        elseif j.phase=='publish' then
+            local limit=math.min(#j.ids,j.publishI+255)
+            while j.publishI<=limit do
+                local idx=j.ids[j.publishI]
+                j.result[j.publishI]=presetList[idx]
+                j.publishI=j.publishI+1
+            end
+            if j.publishI>#j.ids then
+                if j.signature==currentFilterSignature() and j.version==filterCacheVersion then
+                    currentFilteredList=j.result; currentIndexMap=j.ids
+                    filteredCache.signature=j.signature; filteredCache.presets=j.result; filteredCache.indexMap=j.ids
+                    tooltipWidthCache.signature=nil; tooltipJob=nil
+                    preserveFilteredDuringColorRebuild=false
+                    profEnd('filterLatency',j.t0,j.visited)
+                end
+                local sliceVisited = j.visited - visited0
+                -- Current/cache now own the published arrays. Drop the job's
+                -- duplicate references and advance GC incrementally so rapid
+                -- successive searches do not grow the heap indefinitely.
+                j.source = nil
+                j.ids = nil
+                j.result = nil
+                filterJob = nil
+                gcMaintenance(128)
+                profEnd('filterSlice',sliceT0,sliceVisited)
+                return
+            end
+        end
+    end
+    profEnd('filterSlice',sliceT0,j.visited-visited0)
+end
+
 local function getFilteredPresets()
-    local cacheSignature = table.concat({
-        tostring(filterCacheVersion),
-        searchQuery,
-        tostring(filterByColor or ""),
-        tostring(currentFolder or ""),
-        sortMode
-    }, "\31")
-    if filteredCache.signature == cacheSignature then
-        currentFilteredList = filteredCache.presets
-        currentIndexMap = filteredCache.indexMap
-        return currentFilteredList, currentIndexMap, cacheSignature
+    local sig=currentFilterSignature()
+    if filteredCache.signature==sig then
+        currentFilteredList=filteredCache.presets; currentIndexMap=filteredCache.indexMap
+        return currentFilteredList,currentIndexMap,sig
     end
 
-    local filtered = {}
-    local queryLower = searchQuery:lower()
-    local searchActive = (searchQuery ~= "")
-    for i, preset in ipairs(presetList) do
-        local presetColor = colorMarkers[preset.name]
-        if filterByColor and presetColor ~= filterByColor then goto continue end
-        if currentFolder then
-            local presetFolder = presetFolders[preset.name]
-            if presetFolder ~= currentFolder then goto continue end
+    if sortMode~='none' and not sortCache[sortMode] then
+        beginSortBuildJob(sortMode)
+    elseif not filterJob or filterJob.signature~=sig then
+        beginFilterJob(sig)
+    end
+
+    -- Keep the last consistent snapshot visible while a new sort/filter job is
+    -- being built.  This avoids blank-list flashes and makes typing immediate.
+    if #currentFilteredList>0 then return currentFilteredList,currentIndexMap,sig end
+    return {},{},sig
+end
+
+function stepTooltipJob(deadline)
+    local j=tooltipJob; if not j then return end
+    if j.signature~=tooltipJob.signature then tooltipJob=nil; return end
+    while j.i<=#j.presets and reaper.time_precise()<deadline do
+        local p=j.presets[j.i]
+        if p and p.tooltip and p.tooltip~='' then
+            local w=reaper.ImGui_CalcTextSize(ctx,p.tooltip)
+            if w>j.maxWidth then j.maxWidth=w end
         end
-        if searchActive then
-            local nameLower = preset.nameLower or preset.name:lower()
-            local tooltipLower = preset.tooltipLower or (preset.tooltip or ""):lower()
-            local nameMatch = nameLower:find(queryLower, 1, true)
-            local tooltipMatch = tooltipLower:find(queryLower, 1, true)
-            if not (nameMatch or tooltipMatch) then goto continue end
-        end
-        table.insert(filtered, { preset = preset, originalIndex = i })
-        ::continue::
+        j.i=j.i+1
     end
-    if sortMode == "az" then
-        table.sort(filtered, function(a, b)
-            local aName = a.preset.nameLower or a.preset.name:lower()
-            local bName = b.preset.nameLower or b.preset.name:lower()
-            return aName < bName
-        end)
-    elseif sortMode == "colors" then
-        table.sort(filtered, function(a, b)
-            local aColor = colorMarkers[a.preset.name]
-            local bColor = colorMarkers[b.preset.name]
-            local aPriority = aColor and (colorPriority[aColor] or 50) or 100
-            local bPriority = bColor and (colorPriority[bColor] or 50) or 100
-            if aPriority ~= bPriority then return aPriority < bPriority end
-            local aName = a.preset.nameLower or a.preset.name:lower()
-            local bName = b.preset.nameLower or b.preset.name:lower()
-            return aName < bName
-        end)
-    elseif sortMode == "tooltips_az" then
-        table.sort(filtered, function(a, b)
-            local aTooltip = a.preset.tooltip or ""
-            local bTooltip = b.preset.tooltip or ""
-            if aTooltip == "" and bTooltip ~= "" then return false end
-            if aTooltip ~= "" and bTooltip == "" then return true end
-            local aTooltipLower = a.preset.tooltipLower or aTooltip:lower()
-            local bTooltipLower = b.preset.tooltipLower or bTooltip:lower()
-            if aTooltipLower ~= bTooltipLower then return aTooltipLower < bTooltipLower end
-            local aName = a.preset.nameLower or a.preset.name:lower()
-            local bName = b.preset.nameLower or b.preset.name:lower()
-            return aName < bName
-        end)
+    if j.i>#j.presets then
+        tooltipWidthCache.signature=j.signature; tooltipWidthCache.width=j.maxWidth; tooltipJob=nil
     end
-    local resultPresets, resultIndexMap = {}, {}
-    for _, item in ipairs(filtered) do
-        table.insert(resultPresets, item.preset)
-        table.insert(resultIndexMap, item.originalIndex)
-    end
-    currentFilteredList = resultPresets
-    currentIndexMap = resultIndexMap
-    filteredCache.signature = cacheSignature
-    filteredCache.presets = resultPresets
-    filteredCache.indexMap = resultIndexMap
-    return resultPresets, resultIndexMap, cacheSignature
 end
 
 local function calculateMaxTooltipWidth(filteredPresets, cacheSignature)
-    local tooltipSignature = table.concat({ cacheSignature or "", tostring(showTooltipsInline) }, "\31")
-    if tooltipWidthCache.signature == tooltipSignature then
-        return tooltipWidthCache.width
-    end
-    local maxWidth = 0
-    for _, preset in ipairs(filteredPresets) do
-        if preset.tooltip and preset.tooltip ~= "" then
-            local w = reaper.ImGui_CalcTextSize(ctx, preset.tooltip)
-            if w > maxWidth then maxWidth = w end
-        end
-    end
-    tooltipWidthCache.signature = tooltipSignature
-    tooltipWidthCache.width = maxWidth
-    return maxWidth
+    local sig=table.concat({cacheSignature or '',tostring(showTooltipsInline)},'\31')
+    if tooltipWidthCache.signature==sig then return tooltipWidthCache.width end
+    if not tooltipJob or tooltipJob.signature~=sig then tooltipJob={signature=sig,presets=filteredPresets,i=1,maxWidth=0} end
+    return 0
 end
 
 local function formatPresetName(preset, displayIndex)
@@ -1741,21 +2862,31 @@ local function formatPresetName(preset, displayIndex)
     return preset.name
 end
 
-local function drawColorPickerMenu(presetName)
+local function drawColorPickerMenu(presetID)
     reaper.ImGui_Separator(ctx)
     for _, colorInfo in ipairs(availableColors) do
-        local isSelected = (colorMarkers[presetName] == colorInfo.color)
+        local isSelected = (colorMarkers[presetID] == colorInfo.color)
+
+        -- Keep the MenuItem itself full-width.  The marker is drawn afterwards
+        -- on top of the hover/selected background, so the selector does not
+        -- visually stop before the marker column.
+        local label = "     " .. colorInfo.name
+        local clicked = reaper.ImGui_MenuItem(ctx, label, nil, isSelected)
+
         if colorInfo.color then
-            local cursorX, cursorY = reaper.ImGui_GetCursorScreenPos(ctx)
+            local minX, minY = reaper.ImGui_GetItemRectMin(ctx)
+            local maxX, maxY = reaper.ImGui_GetItemRectMax(ctx)
+            local rowH = maxY - minY
+            local radius = math.min(5, math.max(3, rowH * 0.23))
+            local centerX = minX + 11
+            local centerY = minY + rowH * 0.5
             local drawList = reaper.ImGui_GetWindowDrawList(ctx)
-            reaper.ImGui_DrawList_AddCircleFilled(drawList, cursorX + 8, cursorY + 7, 5, colorInfo.color)
-            reaper.ImGui_Dummy(ctx, 16, 0)
-            reaper.ImGui_SameLine(ctx)
-        else
-            reaper.ImGui_Dummy(ctx, 16, 0)
-            reaper.ImGui_SameLine(ctx)
+            reaper.ImGui_DrawList_AddCircleFilled(drawList, centerX, centerY, radius, colorInfo.color)
         end
-        if reaper.ImGui_MenuItem(ctx, colorInfo.name, nil, isSelected) then setColorMarker(presetName, colorInfo.color) end
+
+        if clicked then
+            setColorMarker(presetID, colorInfo.color)
+        end
     end
 end
 
@@ -1764,7 +2895,7 @@ local rangeStartIndex = nil
 local function drawPresetItem(preset, originalIndex, displayIndex, itemWidth, maxTooltipWidth)
     local selected = selectedPresets[originalIndex]
     local isActive = (preset.name == activePresetName)
-    local markerColor = getColorMarker(preset.name)
+    local markerColor = getColorMarker(preset.id)
     local hasTooltip = preset.tooltip and preset.tooltip ~= ""
 
     reaper.ImGui_PushID(ctx, originalIndex)
@@ -1859,7 +2990,7 @@ local function drawPresetItem(preset, originalIndex, displayIndex, itemWidth, ma
             delete()
         end
         if reaper.ImGui_MenuItem(ctx, "Edit Tooltip") then openTooltipModal(originalIndex) end
-        drawColorPickerMenu(preset.name)
+        drawColorPickerMenu(preset.id)
         reaper.ImGui_EndPopup(ctx)
     end
 
@@ -1873,7 +3004,7 @@ local function drawPresetItem(preset, originalIndex, displayIndex, itemWidth, ma
                     dragSelectedPresets[idx] = true
                 end
             end
-            dragPresetName = preset.name
+            dragPresetName = preset.id
             if searchQuery == "" and filterByColor == nil and sortMode == "none" then
                 reaper.ImGui_SetDragDropPayload(ctx, 'reorder_multi', tostring(originalIndex))
             else
@@ -1882,7 +3013,7 @@ local function drawPresetItem(preset, originalIndex, displayIndex, itemWidth, ma
             reaper.ImGui_Text(ctx, selCount .. " presets selected")
         else
             dragSelectedPresets = {}
-            dragPresetName = preset.name
+            dragPresetName = preset.id
             if searchQuery == "" and filterByColor == nil and sortMode == "none" then
                 reaper.ImGui_SetDragDropPayload(ctx, 'reorder', tostring(originalIndex))
             else
@@ -1900,12 +3031,14 @@ local function drawPresetItem(preset, originalIndex, displayIndex, itemWidth, ma
                 local fromIndex = tonumber(payload)
                 local toIndex = originalIndex
                 if fromIndex and toIndex and fromIndex ~= toIndex then
-                    local movedPreset = table.remove(presetList, fromIndex)
-                    table.insert(presetList, toIndex, movedPreset)
-                    selectedPresets = {}
-                    savePresets()
-                    invalidatePresetViewCache()
-                    showFeedback("Moved 1 preset", theme.FolderColor)
+                    local moved=presetList[fromIndex]; local rebuilt={}; local n=0
+                    for i=1,#presetList do
+                        if i==toIndex then n=n+1; rebuilt[n]=moved end
+                        if i~=fromIndex then n=n+1; rebuilt[n]=presetList[i] end
+                    end
+                    if toIndex>#presetList then n=n+1; rebuilt[n]=moved end
+                    presetList=rebuilt; selectedPresets={}; selectedCount=0
+                    savePresets(); invalidatePresetViewCache(); showFeedback("✓ Preset moved")
                 end
             end
 
@@ -1919,33 +3052,18 @@ local function drawPresetItem(preset, originalIndex, displayIndex, itemWidth, ma
                 table.sort(selIndices)
 
                 if #selIndices > 0 then
-                    local movedPresets = {}
-                    for _, idx in ipairs(selIndices) do
-                        table.insert(movedPresets, presetList[idx])
+                    local selectedSet={}; for _,idx in ipairs(selIndices) do selectedSet[idx]=true end
+                    local moved={}; for _,idx in ipairs(selIndices) do moved[#moved+1]=presetList[idx] end
+                    local adjustedTo=toIndex; for _,idx in ipairs(selIndices) do if idx<toIndex then adjustedTo=adjustedTo-1 end end
+                    local remain={}; for i=1,#presetList do if not selectedSet[i] then remain[#remain+1]=presetList[i] end end
+                    if adjustedTo<1 then adjustedTo=1 elseif adjustedTo>#remain+1 then adjustedTo=#remain+1 end
+                    local rebuilt={}; local n=0
+                    for i=1,#remain+1 do
+                        if i==adjustedTo then for _,p in ipairs(moved) do n=n+1; rebuilt[n]=p end end
+                        if remain[i] then n=n+1; rebuilt[n]=remain[i] end
                     end
-
-                    local sortedDesc = {}
-                    for _, idx in ipairs(selIndices) do table.insert(sortedDesc, idx) end
-                    table.sort(sortedDesc, function(a, b) return a > b end)
-
-                    local adjustedTo = toIndex
-                    for _, idx in ipairs(sortedDesc) do
-                        if idx < toIndex then adjustedTo = adjustedTo - 1 end
-                        table.remove(presetList, idx)
-                    end
-
-                    if adjustedTo < 1 then adjustedTo = 1 end
-                    if adjustedTo > #presetList + 1 then adjustedTo = #presetList + 1 end
-
-                    for i, p in ipairs(movedPresets) do
-                        table.insert(presetList, adjustedTo + i - 1, p)
-                    end
-
-                    selectedPresets = {}
-                    dragSelectedPresets = {}
-                    savePresets()
-                    invalidatePresetViewCache()
-                    showFeedback("Moved " .. #selIndices .. " presets", theme.FolderColor)
+                    presetList=rebuilt; selectedPresets={}; selectedCount=0; dragSelectedPresets={}
+                    savePresets(); invalidatePresetViewCache(); showFeedback("✓ "..#selIndices.." presets moved")
                 end
             end
 
@@ -1995,53 +3113,37 @@ local function drawVerticalPresetList(filteredPresets, indexMap, cacheSignature)
 end
 
 local function drawHorizontalPresetList(filteredPresets, indexMap, cacheSignature)
-    local totalPresets = #filteredPresets
-    if totalPresets == 0 then return end
-    local maxTooltipWidth = 0
-    if showTooltipsInline then maxTooltipWidth = calculateMaxTooltipWidth(filteredPresets, cacheSignature) end
-    local numColumns = math.ceil(totalPresets / rowsPerColumn)
-    local rowHeight = getPresetRowHeight()
-    local columnHeight = rowsPerColumn * rowHeight
-    reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_ScrollbarSize(), scrollbarSizeHorizontal)
-    local windowFlags = reaper.ImGui_WindowFlags_HorizontalScrollbar() + reaper.ImGui_WindowFlags_AlwaysHorizontalScrollbar()
-    local _, availHeight = reaper.ImGui_GetContentRegionAvail(ctx)
-    if BeginChild("HorizontalPresetList", 0, availHeight, false, windowFlags) then
-        local scrollX = reaper.ImGui_GetScrollX(ctx)
-        local windowW = reaper.ImGui_GetWindowWidth(ctx)
-        local itemSpacingX = 6
-        local columnSpan = columnWidth + itemSpacingX
-        local overscanCols = 2
-        local firstVisibleCol = math.floor(scrollX / columnSpan) + 1 - overscanCols
-        if firstVisibleCol < 1 then firstVisibleCol = 1 end
-        local visibleCols = math.ceil(windowW / columnSpan) + (overscanCols * 2)
-        local lastVisibleCol = firstVisibleCol + visibleCols - 1
-        if lastVisibleCol > numColumns then lastVisibleCol = numColumns end
-
-        if reaper.ImGui_IsWindowHovered(ctx) then
-            local wheelV = reaper.ImGui_GetMouseWheel(ctx)
-            if wheelV ~= 0 then
-                reaper.ImGui_SetScrollX(ctx, scrollX - wheelV * 50)
-            end
+    local totalPresets=#filteredPresets; if totalPresets==0 then return end
+    local maxTooltipWidth=showTooltipsInline and calculateMaxTooltipWidth(filteredPresets,cacheSignature) or 0
+    local rpc=math.max(1,math.floor(rowsPerColumn)); local numColumns=math.ceil(totalPresets/rpc)
+    local rowHeight=getPresetRowHeight(); local columnHeight=rpc*rowHeight
+    reaper.ImGui_PushStyleVar(ctx,reaper.ImGui_StyleVar_ScrollbarSize(),scrollbarSizeHorizontal)
+    local flags=reaper.ImGui_WindowFlags_HorizontalScrollbar()+reaper.ImGui_WindowFlags_AlwaysHorizontalScrollbar()
+    local _,availHeight=reaper.ImGui_GetContentRegionAvail(ctx)
+    if BeginChild('HorizontalPresetList',0,availHeight,false,flags) then
+        local scrollX=reaper.ImGui_GetScrollX(ctx); local windowW=reaper.ImGui_GetWindowWidth(ctx)
+        local spacing=6; local span=columnWidth+spacing; local overscan=2
+        local first=math.max(1,math.floor(scrollX/span)+1-overscan)
+        local last=math.min(numColumns,first+math.ceil(windowW/span)+overscan*2)
+        if reaper.ImGui_IsWindowHovered(ctx) then local w=reaper.ImGui_GetMouseWheel(ctx); if w~=0 then reaper.ImGui_SetScrollX(ctx,scrollX-w*50) end end
+        if first>1 then reaper.ImGui_Dummy(ctx,(first-1)*span,columnHeight); reaper.ImGui_SameLine(ctx,0,0) end
+        for col=first,last do
+            if col>first then reaper.ImGui_SameLine(ctx) end
+            reaper.ImGui_BeginGroup(ctx)
+            local s=(col-1)*rpc+1; local e=math.min(col*rpc,totalPresets)
+            -- Vertical clipping inside a visible column for extreme rowsPerColumn values.
+            local sy=reaper.ImGui_GetScrollY(ctx); local wh=reaper.ImGui_GetWindowHeight(ctx)
+            local r1=math.max(s, s+math.floor(sy/rowHeight)-2)
+            local r2=math.min(e, s+math.ceil((sy+wh)/rowHeight)+2)
+            if r1>s then reaper.ImGui_Dummy(ctx,0,(r1-s)*rowHeight) end
+            for di=r1,r2 do drawPresetItem(filteredPresets[di],indexMap and indexMap[di] or di,di,columnWidth,maxTooltipWidth) end
+            if r2<e then reaper.ImGui_Dummy(ctx,0,(e-r2)*rowHeight) end
+            reaper.ImGui_EndGroup(ctx)
         end
-        for col = 1, numColumns do
-            local startIdx = (col - 1) * rowsPerColumn + 1
-            local endIdx = math.min(col * rowsPerColumn, totalPresets)
-            if col > 1 then reaper.ImGui_SameLine(ctx) end
-            if col < firstVisibleCol or col > lastVisibleCol then
-                reaper.ImGui_Dummy(ctx, columnWidth, columnHeight)
-            else
-                reaper.ImGui_BeginGroup(ctx)
-                for displayIndex = startIdx, endIdx do
-                    local preset = filteredPresets[displayIndex]
-                    local originalIndex = indexMap and indexMap[displayIndex] or displayIndex
-                    drawPresetItem(preset, originalIndex, displayIndex, columnWidth, maxTooltipWidth)
-                end
-                reaper.ImGui_EndGroup(ctx)
-            end
-        end
+        if last<numColumns then reaper.ImGui_SameLine(ctx,0,0); reaper.ImGui_Dummy(ctx,(numColumns-last)*span,columnHeight) end
         reaper.ImGui_EndChild(ctx)
     end
-    reaper.ImGui_PopStyleVar(ctx, 1)
+    reaper.ImGui_PopStyleVar(ctx,1)
 end
 
 local function drawFolderItem(folder, index)
@@ -2085,50 +3187,40 @@ local function drawFolderItem(folder, index)
                     end
                 end
                 SaveFolders()
-                showFeedback("Folder moved", theme.FolderColor)
+                showFeedback("✓ Folder moved")
             end
         end
 
         local retval2, payload2 = reaper.ImGui_AcceptDragDropPayload(ctx, "DND_PRESET")
         if retval2 and dragPresetName then
             setPresetFolder(dragPresetName, folder)
-            showFeedback("1 preset to folder: " .. folder, theme.FolderColor)
+            showFolderToast(1, folder)
             dragPresetName = nil
         end
 
         local retval3, payload3 = reaper.ImGui_AcceptDragDropPayload(ctx, "DND_PRESET_MULTI")
         if retval3 then
-            local count = 0
-            for idx, v in pairs(dragSelectedPresets) do
-                if v and presetList[idx] then
-                    setPresetFolder(presetList[idx].name, folder)
-                    count = count + 1
-                end
-            end
+            local count = getSelectedCount()
+            batchAssignFolder(dragSelectedPresets, folder)
             dragSelectedPresets = {}
             dragPresetName = nil
-            showFeedback(count .. " presets to folder: " .. folder, theme.FolderColor)
+            showFolderToast(count, folder)
         end
 
         local retval4, payload4 = reaper.ImGui_AcceptDragDropPayload(ctx, "reorder")
         if retval4 and dragPresetName then
             setPresetFolder(dragPresetName, folder)
-            showFeedback("1 preset to folder: " .. folder, theme.FolderColor)
+            showFolderToast(1, folder)
             dragPresetName = nil
         end
 
         local retval5, payload5 = reaper.ImGui_AcceptDragDropPayload(ctx, "reorder_multi")
         if retval5 then
-            local count = 0
-            for idx, v in pairs(dragSelectedPresets) do
-                if v and presetList[idx] then
-                    setPresetFolder(presetList[idx].name, folder)
-                    count = count + 1
-                end
-            end
+            local count = getSelectedCount()
+            batchAssignFolder(dragSelectedPresets, folder)
             dragSelectedPresets = {}
             dragPresetName = nil
-            showFeedback(count .. " presets to folder: " .. folder, theme.FolderColor)
+            showFolderToast(count, folder)
         end
 
         reaper.ImGui_EndDragDropTarget(ctx)
@@ -2211,43 +3303,33 @@ local function drawFoldersPanel()
             local retval, payload = reaper.ImGui_AcceptDragDropPayload(ctx, "DND_PRESET")
             if retval and dragPresetName then
                 setPresetFolder(dragPresetName, nil)
-                showFeedback("1 preset removed from folder", theme.FolderColor)
+                showFeedback("✓ Removed from folder")
                 dragPresetName = nil
             end
 
             local retval2, payload2 = reaper.ImGui_AcceptDragDropPayload(ctx, "DND_PRESET_MULTI")
             if retval2 then
-                local count = 0
-                for idx, v in pairs(dragSelectedPresets) do
-                    if v and presetList[idx] then
-                        setPresetFolder(presetList[idx].name, nil)
-                        count = count + 1
-                    end
-                end
+                local count = getSelectedCount()
+                batchAssignFolder(dragSelectedPresets, nil)
                 dragSelectedPresets = {}
                 dragPresetName = nil
-                showFeedback(count .. " presets removed from folder", theme.FolderColor)
+                showFeedback("✓ " .. count .. " presets removed from folder")
             end
 
             local retval3, payload3 = reaper.ImGui_AcceptDragDropPayload(ctx, "reorder")
             if retval3 and dragPresetName then
                 setPresetFolder(dragPresetName, nil)
-                showFeedback("1 preset removed from folder", theme.FolderColor)
+                showFeedback("✓ Removed from folder")
                 dragPresetName = nil
             end
 
             local retval4, payload4 = reaper.ImGui_AcceptDragDropPayload(ctx, "reorder_multi")
             if retval4 then
-                local count = 0
-                for idx, v in pairs(dragSelectedPresets) do
-                    if v and presetList[idx] then
-                        setPresetFolder(presetList[idx].name, nil)
-                        count = count + 1
-                    end
-                end
+                local count = getSelectedCount()
+                batchAssignFolder(dragSelectedPresets, nil)
                 dragSelectedPresets = {}
                 dragPresetName = nil
-                showFeedback(count .. " presets removed from folder", theme.FolderColor)
+                showFeedback("✓ " .. count .. " presets removed from folder")
             end
 
             reaper.ImGui_EndDragDropTarget(ctx)
@@ -2285,13 +3367,16 @@ local function drawRenameModal()
             if reaper.ImGui_Button(ctx, "OK") or reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_Enter()) then
                 if renameState.input ~= "" then
                     local idx = renameState.index
-                    local oldName = presetList[idx].name
-                    presetList[idx].name = renameState.input
-                    presetList[idx].nameLower = renameState.input:lower()
-                    if colorMarkers[oldName] then colorMarkers[renameState.input] = colorMarkers[oldName] colorMarkers[oldName] = nil SaveColorMarkers() end
-                    if presetFolders[oldName] then presetFolders[renameState.input] = presetFolders[oldName] presetFolders[oldName] = nil SavePresetFolders() end
-                    if activePresetName == oldName then activePresetName = renameState.input end
-                    savePresets() reopenFXUIFast()
+                    local p = idx and presetList[idx]
+                    if p and renameState.input ~= p.name then
+                        local oldName = p.name
+                        p.name = renameState.input
+                        p.nameLower = renameState.input:lower()
+                        -- Color/folder metadata is keyed by p.id, so rename does not move or rewrite bindings.
+                        markMetadataDirty(); invalidatePresetViewCache()
+                        if activePresetName == oldName then activePresetName = renameState.input end
+                        if savePresets() then reopenFXUIFast() end
+                    end
                 end
                 renameState.open = false
                 reaper.ImGui_CloseCurrentPopup(ctx)
@@ -2755,7 +3840,7 @@ local function drawMenuBar()
             if reaper.ImGui_MenuItem(ctx, "Clear all color markers for selected presets", nil, false, hasSelection) then
                 clearColorMarkersForSelectedPresets()
             end
-            if reaper.ImGui_MenuItem(ctx, "Clear All Color Markers") then colorMarkers = {} SaveColorMarkers() end
+            if reaper.ImGui_MenuItem(ctx, "Clear All Color Markers") then colorMarkers = {}; SaveColorMarkers(); invalidateColorDependentView() end
             reaper.ImGui_EndMenu(ctx)
         end
         if reaper.ImGui_BeginMenu(ctx, "Help") then
@@ -2806,10 +3891,31 @@ local function getWindowTitle()
 end
 
 function exit()
+    if activeLoadJob and activeLoadJob.file then activeLoadJob.file:close(); activeLoadJob.file=nil end
+    if metadataWriteJob and metadataWriteJob.file then metadataWriteJob.file:close(); metadataWriteJob.file=nil end
+end
+
+function finishWritesAndExit()
+    flushPluginMetadataIfDirty()
+    local deadline=reaper.time_precise()+JOB_BUDGET_SEC
+    if metadataWriteJob then stepMetadataWriteJob(deadline) end
+    if (metadataWriteJob or #metadataWriteQueue>0 or (activePluginMeta and activePluginMeta.dirty)) then
+        reaper.defer(finishWritesAndExit)
+    else
+        exit()
+    end
 end
 
 local function loop()
     disableKeyboardNav()
+
+    local jobsDeadline=reaper.time_precise()+JOB_BUDGET_SEC
+    if activeLoadJob and reaper.time_precise()<jobsDeadline then stepLoadJob(activeLoadJob,jobsDeadline) end
+    if metadataWriteJob and reaper.time_precise()<jobsDeadline then stepMetadataWriteJob(jobsDeadline) end
+    if not metadataWriteJob and #metadataWriteQueue>0 and reaper.time_precise()<jobsDeadline then startNextMetadataWriteJob(); if metadataWriteJob then stepMetadataWriteJob(jobsDeadline) end end
+    if sortBuildJob and reaper.time_precise()<jobsDeadline then stepSortBuildJob(jobsDeadline) end
+    if filterJob and reaper.time_precise()<jobsDeadline then stepFilterJob(jobsDeadline) end
+    if tooltipJob and reaper.time_precise()<jobsDeadline then stepTooltipJob(jobsDeadline) end
 
     if pendingWindowPos then
         reaper.ImGui_SetNextWindowPos(ctx, pendingWindowPos.x, pendingWindowPos.y, reaper.ImGui_Cond_Always())
@@ -2869,6 +3975,7 @@ local function loop()
         -- Keep the last valid FX context when focus is temporarily outside FX windows.
         -- This avoids losing preset list while opening/switching plugin windows.
         if (track ~= nil or fxnum ~= nil) and (newTrack == nil or newFxnum == nil) then
+            flushPluginMetadataIfDirty()
             track = nil
             fxnum = nil
             currentFXName = ""
@@ -2884,9 +3991,11 @@ local function loop()
             filterByColor = nil
             rangeStartIndex = nil
             lastPresetCount = 0
-            lastPresetFileTime = 0
+            lastPresetFileTime = '0'
+            bankGeneration = bankGeneration + 1; bankLoading=false; activeLoadJob=nil; activePluginMeta=nil
             invalidatePresetViewCache()
         elseif track and not reaper.ValidatePtr2(0, track, "MediaTrack*") then
+            flushPluginMetadataIfDirty()
             track = nil
             fxnum = nil
             currentFXName = ""
@@ -2902,11 +4011,13 @@ local function loop()
             filterByColor = nil
             rangeStartIndex = nil
             lastPresetCount = 0
-            lastPresetFileTime = 0
+            lastPresetFileTime = '0'
+            bankGeneration = bankGeneration + 1; bankLoading=false; activeLoadJob=nil; activePluginMeta=nil
             invalidatePresetViewCache()
         end
 
         if fxReallyChanged then
+            flushPluginMetadataIfDirty()
             track = newTrack
             fxnum = newFxnum
             currentFXName = fx_name or ""
@@ -2959,10 +4070,16 @@ local function loop()
         local changed
         changed, searchQuery = reaper.ImGui_InputText(ctx, '##search', searchQuery)
 
+        -- Capture the exact rendered bounds of the Search field.  Toast feedback
+        -- uses these bounds so it always fills the whole field, including after
+        -- dynamic window resizing / DPI changes.
+        local searchRectMinX, searchRectMinY = reaper.ImGui_GetItemRectMin(ctx)
+        local searchRectMaxX, searchRectMaxY = reaper.ImGui_GetItemRectMax(ctx)
+
         local isSearchActive = reaper.ImGui_IsItemActive(ctx)
         local drawList = reaper.ImGui_GetWindowDrawList(ctx)
 
-        if not isSearchActive and searchQuery == "" then
+        if not isSearchActive then
             local now = reaper.time_precise()
             if feedbackMessage ~= "" and now < feedbackTimer then
                 local remaining = feedbackTimer - now
@@ -2972,11 +4089,36 @@ local function loop()
                 local b = (feedbackColor >> 8) & 0xFF
                 local a = math.floor(255 * alpha)
                 local fadedColor = (r << 24) | (g << 16) | (b << 8) | a
-                reaper.ImGui_DrawList_AddText(drawList, inputPosX + 5, inputPosY + 3, fadedColor, feedbackMessage)
+
+                local _, textH = reaper.ImGui_CalcTextSize(ctx, feedbackMessage)
+                local padX = 8
+
+                -- Replace the whole Search field visually while feedback is active.
+                -- Exact item bounds keep the toast aligned through resize/DPI changes.
+                local x1 = searchRectMinX
+                local y1 = searchRectMinY
+                local x2 = searchRectMaxX
+                local y2 = searchRectMaxY
+
+                local bg = theme.PopupBg
+                local br = (bg >> 24) & 0xFF
+                local bgc = (bg >> 16) & 0xFF
+                local bb = (bg >> 8) & 0xFF
+                local ba = math.floor(235 * alpha)
+                local fadedBg = (br << 24) | (bgc << 16) | (bb << 8) | ba
+
+                local rounding = 5
+                local textY = y1 + math.max(0, (y2 - y1 - textH) * 0.5)
+
+                reaper.ImGui_DrawList_AddRectFilled(drawList, x1, y1, x2, y2, fadedBg, rounding)
+                reaper.ImGui_DrawList_AddText(drawList, x1 + padX, textY, fadedColor, feedbackMessage)
             elseif feedbackMessage ~= "" and now >= feedbackTimer then
                 feedbackMessage = ""
-                reaper.ImGui_DrawList_AddText(drawList, inputPosX + 5, inputPosY + 3, theme.PlaceholderText, "Search...")
-            else
+                feedbackStyle = "toast"
+                if searchQuery == "" then
+                    reaper.ImGui_DrawList_AddText(drawList, inputPosX + 5, inputPosY + 3, theme.PlaceholderText, "Search...")
+                end
+            elseif searchQuery == "" then
                 reaper.ImGui_DrawList_AddText(drawList, inputPosX + 5, inputPosY + 3, theme.PlaceholderText, "Search...")
             end
         end
@@ -3084,7 +4226,8 @@ local function loop()
                     end
                 end
             elseif fx_name ~= nil and fx_name ~= "" then
-                reaper.ImGui_TextDisabled(ctx, "No presets found")
+                if bankLoading then reaper.ImGui_TextDisabled(ctx, "Loading preset bank...")
+                else reaper.ImGui_TextDisabled(ctx, "No presets found") end
             else
                 reaper.ImGui_PushFont(ctx, noFxFont, 18)
                 reaper.ImGui_TextColored(ctx, theme.TextDisabled or 0x808080FF, "No Focused FX")
@@ -3116,12 +4259,14 @@ local function loop()
     reaper.ImGui_PopFont(ctx)
 
     drawScriptPresetsWindow()
+    flushPluginMetadataIfDirty()
 
     if open then reaper.defer(loop)
-    else exit() end
+    else finishWritesAndExit() end
 end
 
 ensurePresetDirectory(managerDataRoot)
+ensurePresetDirectory(managerDataRoot .. "/Plugins")
 migrateLegacyManagerFiles()
 LoadTags()
 LoadTooltipTags()
