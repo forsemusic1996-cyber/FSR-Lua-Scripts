@@ -108,13 +108,50 @@
         <changelog><![CDATA[Initial release.]]></changelog>
       </version>
     </reapack>
-    <!-- ===== FSR Preset Manager.lua ===== -->
-    <reapack name="FSR Preset Manager.lua" type="script" desc="FSR Preset Manager.lua">
-      <version name="0.0.4" author="Andrew Dihtiaruk" time="2026-09-23T00:00:00Z">
-        <source main="main" file="FSR Preset Manager.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/refs/heads/main/FSR-Scripts/FSR%20Preset%20Manager.lua</source>
-        <changelog><![CDATA[Initial ReaPack release.]]></changelog>
-      </version>
-    </reapack>
+   <!-- ===== FSR Preset Manager.lua ===== -->
+<reapack name="FSR Preset Manager.lua" type="script" desc="FSR Preset Manager.lua">
+
+  <metadata>
+    <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fnil Helvetica;}}{\colortbl;\red17\green21\blue28;\red255\green0\blue0;}\viewkind4\uc1
+\line           \fs48 \fs24 \cf1 FSR PRESET MANAGER\u160?\par
+\line           \fs24 \f0 \fs24 A script that reads RPL presets from the focused plugin.\par
+\fs48 Features\par
+\bullet\tab \fs24 \fs24 Add presets\par
+\par
+\bullet\tab \fs24 \fs24 Color markers\par
+\par
+\bullet\tab \fs24 \fs24 Color filters\par
+\par
+\bullet\tab \fs24 \fs24 Create folders\par
+\par
+\bullet\tab \fs24 \fs24 Drag & Drop\par
+\par
+\bullet\tab \fs24 \fs24 Reorder presets\par
+\par
+\bullet\tab \fs24 \fs24 Move presets\par
+\par
+\bullet\tab \fs24 \fs24 Horizontal and vertical layout\par
+\par
+\bullet\tab \fs24 \fs24 Tooltips\par
+\par
+\bullet\tab \fs24 \fs24 Add tags\par
+\par
+\bullet\tab \fs24 \fs24 Sort presets\par
+\par
+\bullet\tab \fs24 \fs24 Search by name and keywords\par
+\par
+\fs48 \fs24 \cf2 Beta Version\par
+\fs24 \fs24 \cf2 \fs24 This script is currently in beta testing and is not a final release version. It appears to be working properly, but bugs or unexpected behavior may still occur. Use it at your own risk\fs24 .\par
+\fs24 \line \par
+\line         }]]></description>
+  </metadata>
+
+  <version name="0.0.4" author="Andrew Dihtiaruk" time="2026-09-23T00:00:00Z">
+    <source main="main" file="FSR Preset Manager.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/refs/heads/main/FSR-Scripts/FSR%20Preset%20Manager.lua</source>
+    <changelog><![CDATA[Initial ReaPack release.]]></changelog>
+  </version>
+
+</reapack>
     <!-- ===== FSR Region Templates.lua ===== -->
     <reapack name="FSR Region Templates.lua" type="script" desc="FSR Region Templates.lua">
       <metadata>
