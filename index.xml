@@ -203,7 +203,17 @@
         <changelog><![CDATA[Initial ReaPack release.]]></changelog>
       </version>
     </reapack>
-    <!-- ===== ADD NEW SCRIPT ABOVE THIS LINE ===== -->
+    
+        <category name="MIDI Tools">
+      <!-- ===== FSR MIDI Smart Focus.lua ===== -->
+      <reapack name="FSR MIDI Smart Focus.lua" type="script" desc="Smart MIDI Editor zoom with optional Time Selection sync.">
+        <version name="1.0.0" author="Andrew Dihtiaruk" time="2026-09-23T00:00:00Z">
+          <source main="midi_editor" file="FSR MIDI Smart Focus.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/refs/heads/main/FSR-Scripts/MIDI%20Tools/FSR%20MIDI%20Smart%20Focus.lua</source>
+          <changelog><![CDATA[Initial ReaPack release.]]></changelog>
+        </version>
+      </reapack>
+    </category>
+<!-- ===== ADD NEW SCRIPT ABOVE THIS LINE ===== -->
   </category>
   <category name="Extensions">
     <!-- ===== reaper_regiontemplatesnet-x64.dll ===== -->
