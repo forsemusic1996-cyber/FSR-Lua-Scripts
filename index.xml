@@ -113,23 +113,23 @@
 
   <metadata>
     <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fnil Helvetica;}}{\colortbl;\red17\green17\blue17;\red17\green21\blue28;\red255\green0\blue0;}\viewkind4\uc1
-{\pard\plain\f0\fs24\cf0\highlight0\sa180 \li0\fi0  \b \fs48 \cf1 \cf2 FSR PRESET MANAGER\u160?\b0 \par}
-{\pard\plain\f0\fs24\cf0\highlight0\sa180 \li0\fi0  \f0 A script that reads RPL presets from the focused plugin.\par}
-{\pard\plain\f0\fs24\cf0\highlight0\sa180 \li0\fi0  \b \fs48 \cf1 Features\b0 \par}
-{\pard\plain\f0\fs24\cf0\highlight0\sa60 \li720\fi-360  \bullet\tab Add presets\par}
-{\pard\plain\f0\fs24\cf0\highlight0\sa60 \li720\fi-360  \bullet\tab Color markers\par}
-{\pard\plain\f0\fs24\cf0\highlight0\sa60 \li720\fi-360  \bullet\tab Color filters\par}
-{\pard\plain\f0\fs24\cf0\highlight0\sa60 \li720\fi-360  \bullet\tab Create folders\par}
-{\pard\plain\f0\fs24\cf0\highlight0\sa60 \li720\fi-360  \bullet\tab Drag & Drop\par}
-{\pard\plain\f0\fs24\cf0\highlight0\sa60 \li720\fi-360  \bullet\tab Reorder presets\par}
-{\pard\plain\f0\fs24\cf0\highlight0\sa60 \li720\fi-360  \bullet\tab Move presets\par}
-{\pard\plain\f0\fs24\cf0\highlight0\sa60 \li720\fi-360  \bullet\tab Horizontal and vertical layout\par}
-{\pard\plain\f0\fs24\cf0\highlight0\sa60 \li720\fi-360  \bullet\tab Tooltips\par}
-{\pard\plain\f0\fs24\cf0\highlight0\sa60 \li720\fi-360  \bullet\tab Add tags\par}
-{\pard\plain\f0\fs24\cf0\highlight0\sa60 \li720\fi-360  \bullet\tab Sort presets\par}
-{\pard\plain\f0\fs24\cf0\highlight0\sa60 \li720\fi-360  \bullet\tab Search by name and keywords\par}
-{\pard\plain\f0\fs24\cf0\highlight0\sa180 \li0\fi0  \b \fs48 \cf1 \cf3 Beta Version\b0 \par}
-{\pard\plain\f0\fs24\cf0\highlight0\sa180 \li0\fi0  \cf3 This script is currently in beta testing and is not a final release version. It appears to be working properly, but bugs or unexpected behavior may still occur. Use it at your own risk.\par}
+{\pard\plain\f0\fs24\cf0\sa180\li0\fi0\b\fs48\cf2 FSR PRESET MANAGER\b0\par}
+{\pard\plain\f0\fs24\cf0\sa180\li0\fi0 FSR Preset Manager is a tool for managing, organizing, searching, and working with RPL presets from the currently focused plugin.\par}
+{\pard\plain\f0\fs24\cf0\sa180\li0\fi0\b\fs48 Features\b0\par}
+{\pard\plain\f0\fs24\cf0\sa60\li720\fi-360\bullet\tab Add presets\par}
+{\pard\plain\f0\fs24\cf0\sa60\li720\fi-360\bullet\tab Color markers\par}
+{\pard\plain\f0\fs24\cf0\sa60\li720\fi-360\bullet\tab Color filters\par}
+{\pard\plain\f0\fs24\cf0\sa60\li720\fi-360\bullet\tab Create folders\par}
+{\pard\plain\f0\fs24\cf0\sa60\li720\fi-360\bullet\tab Drag & Drop\par}
+{\pard\plain\f0\fs24\cf0\sa60\li720\fi-360\bullet\tab Reorder presets\par}
+{\pard\plain\f0\fs24\cf0\sa60\li720\fi-360\bullet\tab Move presets\par}
+{\pard\plain\f0\fs24\cf0\sa60\li720\fi-360\bullet\tab Horizontal and vertical layout\par}
+{\pard\plain\f0\fs24\cf0\sa60\li720\fi-360\bullet\tab Tooltips\par}
+{\pard\plain\f0\fs24\cf0\sa60\li720\fi-360\bullet\tab Add tags\par}
+{\pard\plain\f0\fs24\cf0\sa60\li720\fi-360\bullet\tab Sort presets\par}
+{\pard\plain\f0\fs24\cf0\sa60\li720\fi-360\bullet\tab Search by name and keywords\par}
+{\pard\plain\f0\fs24\cf0\sa180\li0\fi0\b\fs48\cf3 Beta Version\b0\par}
+{\pard\plain\f0\fs24\cf3\sa180\li0\fi0 This script is currently in beta testing and is not a final release version. It appears to be working properly, but bugs or unexpected behavior may still occur. Use it at your own risk.\par}
 }]]></description>
   </metadata>
 
