@@ -3,7 +3,7 @@
 *              FSR Preset Manager
 * Section      Main
 * Author:      Andrew Dihtiaruk (FSR)
-* Version:     0.0.4
+* Version:     0.0.4-optimized
 -------------------------------------------------------------------------------------------               
 * DONATION:    http://ko-fi.com/pianohousestudio    ««««« Double-click the link to open it.
                http://www.paypal.com/paypalme/AndriiDrots Double-click the link to open it.
@@ -49,8 +49,6 @@ if sortMode == "" then sortMode = "none" end
 
 local horizontalMode = reaper.GetExtState("PresetManager", "HorizontalMode") == "true"
 local showNumbers = reaper.GetExtState("PresetManager", "ShowNumbers") == "true"
-local showTooltipsInline = reaper.GetExtState("PresetManager", "ShowTooltipsInline") == "true"
-if reaper.GetExtState("PresetManager", "ShowTooltipsInline") == "" then showTooltipsInline = true end
 local showColorFilters = reaper.GetExtState("PresetManager", "ShowColorFilters") ~= "false"
 local showTags = reaper.GetExtState("PresetManager", "ShowTags") ~= "false"
 local showColorMarkers = reaper.GetExtState("PresetManager", "ShowColorMarkers") ~= "false"
@@ -114,7 +112,6 @@ scriptPresetSaveMask = {}
 function resetScriptPresetSaveMask()
     scriptPresetSaveMask.mode = true
     scriptPresetSaveMask.numbers = true
-    scriptPresetSaveMask.inlineTooltips = true
     scriptPresetSaveMask.rowsPerColumn = true
     scriptPresetSaveMask.columnWidth = true
     scriptPresetSaveMask.scrollbarVertical = true
@@ -155,8 +152,6 @@ end
 
 local tags = {}
 local tag_file = managerDataRoot .. "/Tags.txt"
-local tooltipTags = {}
-local tooltip_tag_file = managerDataRoot .. "/TooltipTags.txt"
 local presetSaveTags = {}
 local preset_save_tag_file = managerDataRoot .. "/PresetSaveTags.txt"
 local script_presets_file = managerDataRoot .. "/ScriptPresets.txt"
@@ -183,7 +178,6 @@ local dragSelectedPresets = {}
 local dragTagIndex = nil
 
 local renameState = { open = false, index = nil, input = "" }
-local tooltipState = { open = false, index = nil, input = "" }
 local savePresetState = { open = false, input = "", autoFocus = false }
 local folderRenameState = { open = false, index = nil, input = "" }
 local newFolderState = { open = false, input = "" }
@@ -203,8 +197,6 @@ local currentIndexMap = {}
 local waitingForHotkey = nil
 local hotkeyInputActive = false
 
-local TOOLTIP_RIGHT_MARGIN = 16
-
 local feedbackMessage = ""
 local feedbackTimer = 0
 local feedbackColor = 0x4488FFFF
@@ -216,7 +208,6 @@ local lastPresetFileTime = 0
 local nextExternalCheckTime = 0
 local filterCacheVersion = 0
 local filteredCache = { signature = nil, presets = {}, indexMap = {} }
-local tooltipWidthCache = { signature = nil, width = 0 }
 local preserveFilteredDuringColorRebuild = false
 
 
@@ -237,8 +228,7 @@ bankLoading = false
 activeLoadJob = nil
 filterJob = nil
 sortBuildJob = nil
-sortCache = { az = nil, colors = nil, tooltips_az = nil }
-tooltipJob = nil
+sortCache = { az = nil, colors = nil }
 metadataDirty = false
 metadataRevision = 0
 metadataWriteJob = nil
@@ -275,9 +265,7 @@ end
 function invalidatePresetViewCache(preserveCurrentFiltered, sortImpact)
     filterCacheVersion = filterCacheVersion + 1
     filteredCache.signature = nil
-    tooltipWidthCache.signature = nil
     cancelFilterJob(false)
-    tooltipJob = nil
     preserveFilteredDuringColorRebuild = preserveCurrentFiltered and (#currentFilteredList > 0) or false
 
     -- Sort orders are independent from search/folder filters.  By default a
@@ -285,7 +273,7 @@ function invalidatePresetViewCache(preserveCurrentFiltered, sortImpact)
     -- that only changed folders/search can pass "none"; color-only changes
     -- can pass "colors".
     if sortImpact == nil or sortImpact == 'all' then
-        sortCache.az, sortCache.colors, sortCache.tooltips_az = nil, nil, nil
+        sortCache.az, sortCache.colors = nil, nil
         cancelSortBuildJob(false)
     elseif sortImpact == 'colors' then
         sortCache.colors = nil
@@ -293,9 +281,6 @@ function invalidatePresetViewCache(preserveCurrentFiltered, sortImpact)
     elseif sortImpact == 'az' then
         sortCache.az = nil
         if sortBuildJob and sortBuildJob.mode == 'az' then cancelSortBuildJob(false) end
-    elseif sortImpact == 'tooltips_az' then
-        sortCache.tooltips_az = nil
-        if sortBuildJob and sortBuildJob.mode == 'tooltips_az' then cancelSortBuildJob(false) end
     end
     gcMaintenance(64)
 end
@@ -986,7 +971,7 @@ local theme = {
     SliderGrab = 0x4488FFFF, SliderGrabActive = 0x4488FFFF,
     Header = 0x3D3D3DFF, HeaderHovered = 0x4D4D4DFF, HeaderActive = 0x5D5D5DFF,
     Separator = 0x505050FF, PopupBg = 0x252525FF, MenuBarBg = 0x2A2A2AFF,
-    ActivePreset = 0x4488FFFF, TooltipText = 0x888888FF,
+    ActivePreset = 0x4488FFFF,
     FolderColor = 0x4488FFFF,
     FolderActive = 0x4488FFFF,
     FolderSeparator = 0x4488FFFF,
@@ -1026,7 +1011,6 @@ function appearance.refreshThemeColors()
     theme.SliderGrab = appearance.accentColor
     theme.SliderGrabActive = appearance.accentColor
     theme.ActivePreset = appearance.accentColor
-    theme.TooltipText = appearance.rebaseColor(0x888888FF, appearance.defaultText, appearance.textColor)
     theme.FolderColor = appearance.usingDefaultTheme and 0x4488FFFF or appearance.accentColor
     theme.FolderActive = appearance.accent2Color
     theme.FolderSeparator = appearance.accent2Color
@@ -1237,7 +1221,6 @@ local function migrateLegacyManagerFiles()
     local files = {
         { legacyRoot .. "/" .. SCRIPT_ID .. "_ColorMarkers.txt", colorMarkerFile },
         { legacyRoot .. "/" .. SCRIPT_ID .. "_Tags.txt", tag_file },
-        { legacyRoot .. "/" .. SCRIPT_ID .. "_TooltipTags.txt", tooltip_tag_file },
         { legacyRoot .. "/" .. SCRIPT_ID .. "_PresetSaveTags.txt", preset_save_tag_file },
         { legacyRoot .. "/" .. SCRIPT_ID .. "_ScriptPresets.txt", script_presets_file },
         { legacyRoot .. "/" .. SCRIPT_ID .. "_FXFolders.txt", fx_folders_file },
@@ -1484,7 +1467,6 @@ end
 local function GetCurrentSettings(mask)
     local settings = {
         horizontalMode = horizontalMode, showNumbers = showNumbers,
-        showTooltipsInline = showTooltipsInline,
         rowsPerColumn = rowsPerColumn, columnWidth = columnWidth,
         scrollbarSize = scrollbarSizeVertical,
         scrollbarSizeVertical = scrollbarSizeVertical,
@@ -1501,7 +1483,6 @@ local function GetCurrentSettings(mask)
         settings.scrollbarSize = nil
         if not mask.mode then settings.horizontalMode = nil end
         if not mask.numbers then settings.showNumbers = nil end
-        if not mask.inlineTooltips then settings.showTooltipsInline = nil end
         if not mask.rowsPerColumn then settings.rowsPerColumn = nil end
         if not mask.columnWidth then settings.columnWidth = nil end
         if not mask.scrollbarVertical then
@@ -1537,10 +1518,6 @@ local function ApplySettings(settings)
     if settings.showNumbers ~= nil then
         showNumbers = settings.showNumbers
         reaper.SetExtState("PresetManager", "ShowNumbers", tostring(showNumbers), true)
-    end
-    if settings.showTooltipsInline ~= nil then
-        showTooltipsInline = settings.showTooltipsInline
-        reaper.SetExtState("PresetManager", "ShowTooltipsInline", tostring(showTooltipsInline), true)
     end
     if settings.rowsPerColumn then
         rowsPerColumn = settings.rowsPerColumn
@@ -1707,20 +1684,6 @@ end
 local function SaveTags()
     local f = io.open(tag_file, "w")
     if f then for _, t in ipairs(tags) do f:write(t .. "\n") end f:close() end
-end
-
-local function LoadTooltipTags()
-    tooltipTags = {}
-    local f = io.open(tooltip_tag_file, "r")
-    if f then
-        for line in f:lines() do if line ~= "" then table.insert(tooltipTags, line) end end
-        f:close()
-    end
-end
-
-local function SaveTooltipTags()
-    local f = io.open(tooltip_tag_file, "w")
-    if f then for _, t in ipairs(tooltipTags) do f:write(t .. "\n") end f:close() end
 end
 
 local function LoadPresetSaveTags()
@@ -2303,7 +2266,7 @@ local function switchToPreset(index)
 end
 
 refreshData = function()
-    LoadTags() LoadTooltipTags() LoadPresetSaveTags() LoadColorMarkers()
+    LoadTags() LoadPresetSaveTags() LoadColorMarkers()
     LoadScriptPresets() LoadAllFXFolders() LoadAllPresetFolders()
     if currentFXName ~= "" then
         LoadFoldersForFX(currentFXName)
@@ -2320,12 +2283,6 @@ local function openRenameModal(index)
     renameState.open = true
     renameState.index = index
     renameState.input = presetList[index].name
-end
-
-local function openTooltipModal(index)
-    tooltipState.open = true
-    tooltipState.index = index
-    tooltipState.input = presetList[index].tooltip or ""
 end
 
 local function openSavePresetModal()
@@ -2625,13 +2582,15 @@ local function keyboard_shortcuts()
                 if selectedIndex then openRenameModal(selectedIndex) end
             end
         end
-        if reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_F3(), false) then
-            showTooltipsInline = not showTooltipsInline
-            reaper.SetExtState("PresetManager", "ShowTooltipsInline", tostring(showTooltipsInline), true)
-        end
         if reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_F5(), false) then
             restartFocusedFX()
             refreshData()
+        end
+        if currentFXName ~= "" and (
+            reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_F6(), false) or
+            (ctrl and reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_N(), false))
+        ) then
+            openNewFolderModal()
         end
         if reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_F4(), false) then
             saveSearchAsTag()
@@ -2666,13 +2625,6 @@ function filterLessMode(mode, a, b)
         if ap~=bp then return ap<bp end
         local aa=pa.nameLower or (pa.name or ''):lower(); local bb=pb.nameLower or (pb.name or ''):lower()
         if aa==bb then return a<b end; return aa<bb
-    elseif mode=='tooltips_az' then
-        local ta,tb=pa.tooltip or '',pb.tooltip or ''
-        if ta=='' and tb~='' then return false elseif ta~='' and tb=='' then return true end
-        local aa=pa.tooltipLower or ta:lower(); local bb=pb.tooltipLower or tb:lower()
-        if aa~=bb then return aa<bb end
-        local an=pa.nameLower or (pa.name or ''):lower(); local bn=pb.nameLower or (pb.name or ''):lower()
-        if an==bn then return a<b end; return an<bn
     end
     return a<b
 end
@@ -2774,10 +2726,7 @@ function stepFilterJob(deadline)
                 end
                 if ok and searchActive then
                     local nl=p.nameLower or (p.name or ''):lower()
-                    if nl:find(q,1,true)==nil then
-                        local tl=p.tooltipLower or (p.tooltip or ''):lower()
-                        ok=(tl:find(q,1,true)~=nil)
-                    end
+                    ok=(nl:find(q,1,true)~=nil)
                 end
                 if ok then j.ids[#j.ids+1]=idx end
                 j.i=pos+1; j.visited=j.visited+1
@@ -2794,7 +2743,6 @@ function stepFilterJob(deadline)
                 if j.signature==currentFilterSignature() and j.version==filterCacheVersion then
                     currentFilteredList=j.result; currentIndexMap=j.ids
                     filteredCache.signature=j.signature; filteredCache.presets=j.result; filteredCache.indexMap=j.ids
-                    tooltipWidthCache.signature=nil; tooltipJob=nil
                     preserveFilteredDuringColorRebuild=false
                     profEnd('filterLatency',j.t0,j.visited)
                 end
@@ -2834,29 +2782,6 @@ local function getFilteredPresets()
     return {},{},sig
 end
 
-function stepTooltipJob(deadline)
-    local j=tooltipJob; if not j then return end
-    if j.signature~=tooltipJob.signature then tooltipJob=nil; return end
-    while j.i<=#j.presets and reaper.time_precise()<deadline do
-        local p=j.presets[j.i]
-        if p and p.tooltip and p.tooltip~='' then
-            local w=reaper.ImGui_CalcTextSize(ctx,p.tooltip)
-            if w>j.maxWidth then j.maxWidth=w end
-        end
-        j.i=j.i+1
-    end
-    if j.i>#j.presets then
-        tooltipWidthCache.signature=j.signature; tooltipWidthCache.width=j.maxWidth; tooltipJob=nil
-    end
-end
-
-local function calculateMaxTooltipWidth(filteredPresets, cacheSignature)
-    local sig=table.concat({cacheSignature or '',tostring(showTooltipsInline)},'\31')
-    if tooltipWidthCache.signature==sig then return tooltipWidthCache.width end
-    if not tooltipJob or tooltipJob.signature~=sig then tooltipJob={signature=sig,presets=filteredPresets,i=1,maxWidth=0} end
-    return 0
-end
-
 local function formatPresetName(preset, displayIndex)
     if showNumbers then return tostring(displayIndex) .. ". " .. preset.name end
     return preset.name
@@ -2892,11 +2817,10 @@ end
 
 local rangeStartIndex = nil
 
-local function drawPresetItem(preset, originalIndex, displayIndex, itemWidth, maxTooltipWidth)
+local function drawPresetItem(preset, originalIndex, displayIndex, itemWidth)
     local selected = selectedPresets[originalIndex]
     local isActive = (preset.name == activePresetName)
     local markerColor = getColorMarker(preset.id)
-    local hasTooltip = preset.tooltip and preset.tooltip ~= ""
 
     reaper.ImGui_PushID(ctx, originalIndex)
 
@@ -2919,37 +2843,9 @@ local function drawPresetItem(preset, originalIndex, displayIndex, itemWidth, ma
     local itemCenterY = (itemMinY + itemMaxY) / 2
     local drawList = reaper.ImGui_GetWindowDrawList(ctx)
 
-    local fixedRightEdge = itemMaxX - TOOLTIP_RIGHT_MARGIN
-
     if showColorMarkers and markerColor then
         local dotX = itemMaxX - 12
         reaper.ImGui_DrawList_AddCircleFilled(drawList, dotX, itemCenterY, 4, markerColor)
-    end
-
-    if showTooltipsInline and hasTooltip and maxTooltipWidth > 0 then
-        local tooltipColor = theme.TooltipText or 0x888888FF
-        local tooltipText = preset.tooltip
-        local tooltipStartX = fixedRightEdge - maxTooltipWidth - 4
-        local nameWidth = reaper.ImGui_CalcTextSize(ctx, displayName)
-        local nameRightBound = itemMinX + nameWidth + 10
-        if tooltipStartX > nameRightBound then
-            reaper.ImGui_DrawList_AddText(drawList, tooltipStartX, itemMinY + 2, tooltipColor, tooltipText)
-        else
-            local availableWidth = fixedRightEdge - nameRightBound - 4
-            if availableWidth > 30 then
-                local tooltipW = reaper.ImGui_CalcTextSize(ctx, tooltipText)
-                if tooltipW > availableWidth then
-                    local chars = math.floor(availableWidth / 7)
-                    if chars > 3 then tooltipText = tooltipText:sub(1, chars) .. "..."
-                    else tooltipText = "" end
-                end
-                if tooltipText ~= "" then
-                    local textX = fixedRightEdge - maxTooltipWidth - 4
-                    if textX < nameRightBound then textX = nameRightBound end
-                    reaper.ImGui_DrawList_AddText(drawList, textX, itemMinY + 2, tooltipColor, tooltipText)
-                end
-            end
-        end
     end
 
     if clicked then
@@ -2989,7 +2885,6 @@ local function drawPresetItem(preset, originalIndex, displayIndex, itemWidth, ma
             end
             delete()
         end
-        if reaper.ImGui_MenuItem(ctx, "Edit Tooltip") then openTooltipModal(originalIndex) end
         drawColorPickerMenu(preset.id)
         reaper.ImGui_EndPopup(ctx)
     end
@@ -3084,8 +2979,6 @@ end
 local function drawVerticalPresetList(filteredPresets, indexMap, cacheSignature)
     local totalPresets = #filteredPresets
     if totalPresets == 0 then return end
-    local maxTooltipWidth = 0
-    if showTooltipsInline then maxTooltipWidth = calculateMaxTooltipWidth(filteredPresets, cacheSignature) end
 
     local rowHeight = getPresetRowHeight()
     local scrollY = reaper.ImGui_GetScrollY(ctx)
@@ -3104,7 +2997,7 @@ local function drawVerticalPresetList(filteredPresets, indexMap, cacheSignature)
     for displayIndex = firstVisible, lastVisible do
         local preset = filteredPresets[displayIndex]
         local originalIndex = indexMap and indexMap[displayIndex] or displayIndex
-        drawPresetItem(preset, originalIndex, displayIndex, nil, maxTooltipWidth)
+        drawPresetItem(preset, originalIndex, displayIndex)
     end
 
     if lastVisible < totalPresets then
@@ -3114,7 +3007,6 @@ end
 
 local function drawHorizontalPresetList(filteredPresets, indexMap, cacheSignature)
     local totalPresets=#filteredPresets; if totalPresets==0 then return end
-    local maxTooltipWidth=showTooltipsInline and calculateMaxTooltipWidth(filteredPresets,cacheSignature) or 0
     local rpc=math.max(1,math.floor(rowsPerColumn)); local numColumns=math.ceil(totalPresets/rpc)
     local rowHeight=getPresetRowHeight(); local columnHeight=rpc*rowHeight
     reaper.ImGui_PushStyleVar(ctx,reaper.ImGui_StyleVar_ScrollbarSize(),scrollbarSizeHorizontal)
@@ -3136,7 +3028,7 @@ local function drawHorizontalPresetList(filteredPresets, indexMap, cacheSignatur
             local r1=math.max(s, s+math.floor(sy/rowHeight)-2)
             local r2=math.min(e, s+math.ceil((sy+wh)/rowHeight)+2)
             if r1>s then reaper.ImGui_Dummy(ctx,0,(r1-s)*rowHeight) end
-            for di=r1,r2 do drawPresetItem(filteredPresets[di],indexMap and indexMap[di] or di,di,columnWidth,maxTooltipWidth) end
+            for di=r1,r2 do drawPresetItem(filteredPresets[di],indexMap and indexMap[di] or di,di,columnWidth) end
             if r2<e then reaper.ImGui_Dummy(ctx,0,(e-r2)*rowHeight) end
             reaper.ImGui_EndGroup(ctx)
         end
@@ -3430,66 +3322,6 @@ local function drawNewFolderModal()
     end
 end
 
-local function drawTooltipModal()
-    if tooltipState.open then
-        reaper.ImGui_SetNextWindowSize(ctx, 350, 0, reaper.ImGui_Cond_Always())
-        reaper.ImGui_OpenPopup(ctx, "Edit Tooltip##modal")
-        if reaper.ImGui_BeginPopupModal(ctx, "Edit Tooltip##modal", nil, reaper.ImGui_WindowFlags_AlwaysAutoResize()) then
-            local avail = reaper.ImGui_GetContentRegionAvail(ctx)
-            reaper.ImGui_SetNextItemWidth(ctx, avail - 30)
-            local changed
-            changed, tooltipState.input = reaper.ImGui_InputText(ctx, "##tooltipinput", tooltipState.input)
-            reaper.ImGui_SameLine(ctx)
-            if reaper.ImGui_Button(ctx, "+", 20, 20) then
-                if tooltipState.input ~= "" then
-                    for t in tooltipState.input:gmatch("[^/]+") do
-                        t = t:gsub("^%s+", ""):gsub("%s+$", "")
-                        local exists = false
-                        for _, tt in ipairs(tooltipTags) do if tt == t then exists = true break end end
-                        if not exists then table.insert(tooltipTags, t) end
-                    end
-                    SaveTooltipTags()
-                end
-            end
-            if #tooltipTags > 0 then
-                reaper.ImGui_Separator(ctx)
-                reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_ItemSpacing(), 2, 2)
-                reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_FramePadding(), 2, 2)
-                local max_width = reaper.ImGui_GetContentRegionAvail(ctx)
-                local cur_width, first_in_row, h_padding = 0, true, 2
-                for i, t in ipairs(tooltipTags) do
-                    local btn_w = reaper.ImGui_CalcTextSize(ctx, t)
-                    local btn_size = btn_w + 10
-                    if cur_width + btn_size > max_width then cur_width = 0 first_in_row = true end
-                    if not first_in_row then reaper.ImGui_SameLine(ctx, 0, h_padding) end
-                    if reaper.ImGui_Button(ctx, t .. "##tooltipTag" .. i) then
-                        if tooltipState.input == "" then tooltipState.input = t
-                        else tooltipState.input = tooltipState.input .. " / " .. t end
-                    end
-                    if reaper.ImGui_IsItemHovered(ctx) and reaper.ImGui_IsMouseReleased(ctx, 1) then
-                        table.remove(tooltipTags, i) SaveTooltipTags() break
-                    end
-                    cur_width = cur_width + btn_size + h_padding
-                    first_in_row = false
-                end
-                reaper.ImGui_PopStyleVar(ctx, 2)
-                reaper.ImGui_Separator(ctx)
-            end
-            if reaper.ImGui_Button(ctx, "OK") or reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_Enter()) then
-                local idx = tooltipState.index
-                presetList[idx].tooltip = tooltipState.input
-                presetList[idx].tooltipLower = (tooltipState.input or ""):lower()
-                savePresets()
-                tooltipState.open = false
-                reaper.ImGui_CloseCurrentPopup(ctx)
-            end
-            reaper.ImGui_SameLine(ctx)
-            if reaper.ImGui_Button(ctx, "Cancel") then tooltipState.open = false reaper.ImGui_CloseCurrentPopup(ctx) end
-            reaper.ImGui_EndPopup(ctx)
-        end
-    end
-end
-
 local function drawSavePresetModal()
     if savePresetState.open then
         local popupTitle = (currentFolder and ("Save Preset (" .. currentFolder .. ")") or "Save Preset") .. "###SavePresetModal"
@@ -3595,7 +3427,6 @@ local function drawScriptPresetsWindow()
         reaper.ImGui_Separator(ctx)
         drawScriptPresetSetting("Mode: " .. (horizontalMode and "Horizontal" or "Vertical"), "mode")
         drawScriptPresetSetting("Numbers: " .. (showNumbers and "Yes" or "No"), "numbers")
-        drawScriptPresetSetting("Inline Tooltips: " .. (showTooltipsInline and "Yes" or "No"), "inlineTooltips")
         drawScriptPresetSetting("Rows/Column: " .. rowsPerColumn, "rowsPerColumn")
         drawScriptPresetSetting("Column Width: " .. columnWidth, "columnWidth")
         drawScriptPresetSetting("Scrollbar Vertical: " .. scrollbarSizeVertical, "scrollbarVertical")
@@ -3728,11 +3559,6 @@ local function drawMenuBar()
                 showNumbers = not showNumbers reaper.SetExtState("PresetManager", "ShowNumbers", tostring(showNumbers), true)
             end
             reaper.ImGui_Separator(ctx)
-            if reaper.ImGui_MenuItem(ctx, "Show Tooltips Inline", nil, showTooltipsInline) then
-                showTooltipsInline = not showTooltipsInline
-                reaper.SetExtState("PresetManager", "ShowTooltipsInline", tostring(showTooltipsInline), true)
-            end
-            reaper.ImGui_Separator(ctx)
             if reaper.ImGui_MenuItem(ctx, "Show Tags", nil, showTags) then
                 showTags = not showTags reaper.SetExtState("PresetManager", "ShowTags", tostring(showTags), true)
             end
@@ -3852,8 +3678,8 @@ local function drawMenuBar()
             reaper.ImGui_BulletText(ctx, "Tab - Toggle folders panel")
             reaper.ImGui_BulletText(ctx, "F4 - Add current search as Tag")
             reaper.ImGui_BulletText(ctx, "F2 - Rename selected")
-            reaper.ImGui_BulletText(ctx, "F3 - Toggle tooltips inline")
             reaper.ImGui_BulletText(ctx, "F5 - Restart focused FX + Refresh data")
+            reaper.ImGui_BulletText(ctx, "F6 / Ctrl+N - Create new folder")
             reaper.ImGui_BulletText(ctx, "Del - Delete selected")
             reaper.ImGui_BulletText(ctx, "Up/Down - Navigate presets")
             reaper.ImGui_BulletText(ctx, "Left/Right - Switch script presets")
@@ -3915,7 +3741,6 @@ local function loop()
     if not metadataWriteJob and #metadataWriteQueue>0 and reaper.time_precise()<jobsDeadline then startNextMetadataWriteJob(); if metadataWriteJob then stepMetadataWriteJob(jobsDeadline) end end
     if sortBuildJob and reaper.time_precise()<jobsDeadline then stepSortBuildJob(jobsDeadline) end
     if filterJob and reaper.time_precise()<jobsDeadline then stepFilterJob(jobsDeadline) end
-    if tooltipJob and reaper.time_precise()<jobsDeadline then stepTooltipJob(jobsDeadline) end
 
     if pendingWindowPos then
         reaper.ImGui_SetNextWindowPos(ctx, pendingWindowPos.x, pendingWindowPos.y, reaper.ImGui_Cond_Always())
@@ -4238,6 +4063,7 @@ local function loop()
                 reaper.ImGui_BulletText(ctx, "Esc - Close script")
                 reaper.ImGui_BulletText(ctx, "F1 - Toggle menu bar")
                 reaper.ImGui_BulletText(ctx, "Tab - Toggle folders panel")
+                reaper.ImGui_BulletText(ctx, "F6 / Ctrl+N - Create new folder")
                 reaper.ImGui_BulletText(ctx, "Right-click search field for tags")
                 reaper.ImGui_PopStyleColor(ctx)
                 reaper.ImGui_PopFont(ctx)
@@ -4246,7 +4072,6 @@ local function loop()
         end
 
         drawRenameModal()
-        drawTooltipModal()
         drawSavePresetModal()
         drawFolderRenameModal()
         drawNewFolderModal()
@@ -4269,7 +4094,6 @@ ensurePresetDirectory(managerDataRoot)
 ensurePresetDirectory(managerDataRoot .. "/Plugins")
 migrateLegacyManagerFiles()
 LoadTags()
-LoadTooltipTags()
 LoadPresetSaveTags()
 LoadColorMarkers()
 LoadScriptPresets()
@@ -4281,4 +4105,3 @@ presetFolders = {}
 
 reaper.atexit(exit)
 reaper.defer(loop)
-
