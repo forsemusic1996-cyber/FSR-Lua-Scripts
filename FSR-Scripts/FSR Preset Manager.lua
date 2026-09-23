@@ -3479,7 +3479,7 @@ local function drawScriptPresetsWindow()
             end
             reaper.ImGui_EndChild(ctx)
         end
-        if reaper.ImGui_Button(ctx, "Close") then scriptPresetsOpen = false end
+        reaper.ImGui_TextDisabled(ctx, "Right-click a display preset and choose Set Hotkey... from the menu.")
         reaper.ImGui_End(ctx)
     end
     reaper.ImGui_PopStyleColor(ctx, 14)
