@@ -108,42 +108,29 @@
         <changelog><![CDATA[Initial release.]]></changelog>
       </version>
     </reapack>
-   <!-- ===== FSR Preset Manager.lua ===== -->
+<!-- ===== FSR Preset Manager.lua ===== -->
 <reapack name="FSR Preset Manager.lua" type="script" desc="FSR Preset Manager.lua">
 
   <metadata>
-    <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fnil Helvetica;}}{\colortbl;\red17\green21\blue28;\red255\green0\blue0;}\viewkind4\uc1
-\line           \fs48 \fs24 \cf1 FSR PRESET MANAGER\u160?\par
-\line           \fs24 \f0 \fs24 A script that reads RPL presets from the focused plugin.\par
-\fs48 Features\par
-\bullet\tab \fs24 \fs24 Add presets\par
-\par
-\bullet\tab \fs24 \fs24 Color markers\par
-\par
-\bullet\tab \fs24 \fs24 Color filters\par
-\par
-\bullet\tab \fs24 \fs24 Create folders\par
-\par
-\bullet\tab \fs24 \fs24 Drag & Drop\par
-\par
-\bullet\tab \fs24 \fs24 Reorder presets\par
-\par
-\bullet\tab \fs24 \fs24 Move presets\par
-\par
-\bullet\tab \fs24 \fs24 Horizontal and vertical layout\par
-\par
-\bullet\tab \fs24 \fs24 Tooltips\par
-\par
-\bullet\tab \fs24 \fs24 Add tags\par
-\par
-\bullet\tab \fs24 \fs24 Sort presets\par
-\par
-\bullet\tab \fs24 \fs24 Search by name and keywords\par
-\par
-\fs48 \fs24 \cf2 Beta Version\par
-\fs24 \fs24 \cf2 \fs24 This script is currently in beta testing and is not a final release version. It appears to be working properly, but bugs or unexpected behavior may still occur. Use it at your own risk\fs24 .\par
-\fs24 \line \par
-\line         }]]></description>
+    <description><![CDATA[{\rtf1\ansi\deff0{\fonttbl{\f0 \fnil Helvetica;}}{\colortbl;\red17\green17\blue17;\red17\green21\blue28;\red255\green0\blue0;}\viewkind4\uc1
+{\pard\plain\f0\fs24\cf0\highlight0\sa180\li0\fi0 \b \fs48 \cf1 \cf2 FSR PRESET MANAGER\u160?\b0 \par}
+{\pard\plain\f0\fs24\cf0\highlight0\sa180\li0\fi0 \f0 A script that reads RPL presets from the focused plugin.\par}
+{\pard\plain\f0\fs24\cf0\highlight0\sa180\li0\fi0 \b \fs48 \cf1 Features\b0 \par}
+{\pard\plain\f0\fs24\cf0\highlight0\sa180\li0\fi0 \bullet\tab Add presets\par}
+{\pard\plain\f0\fs24\cf0\highlight0\sa180\li0\fi0 \bullet\tab Color markers\par}
+{\pard\plain\f0\fs24\cf0\highlight0\sa180\li0\fi0 \bullet\tab Color filters\par}
+{\pard\plain\f0\fs24\cf0\highlight0\sa180\li0\fi0 \bullet\tab Create folders\par}
+{\pard\plain\f0\fs24\cf0\highlight0\sa180\li0\fi0 \bullet\tab Drag & Drop\par}
+{\pard\plain\f0\fs24\cf0\highlight0\sa180\li0\fi0 \bullet\tab Reorder presets\par}
+{\pard\plain\f0\fs24\cf0\highlight0\sa180\li0\fi0 \bullet\tab Move presets\par}
+{\pard\plain\f0\fs24\cf0\highlight0\sa180\li0\fi0 \bullet\tab Horizontal and vertical layout\par}
+{\pard\plain\f0\fs24\cf0\highlight0\sa180\li0\fi0 \bullet\tab Tooltips\par}
+{\pard\plain\f0\fs24\cf0\highlight0\sa180\li0\fi0 \bullet\tab Add tags\par}
+{\pard\plain\f0\fs24\cf0\highlight0\sa180\li0\fi0 \bullet\tab Sort presets\par}
+{\pard\plain\f0\fs24\cf0\highlight0\sa180\li0\fi0 \bullet\tab Search by name and keywords\par}
+{\pard\plain\f0\fs24\cf0\highlight0\sa180\li0\fi0 \b \fs48 \cf1 \cf3 Beta Version\b0 \par}
+{\pard\plain\f0\fs24\cf0\highlight0\sa180\li0\fi0 \cf3 This script is currently in beta testing and is not a final release version. It appears to be working properly, but bugs or unexpected behavior may still occur. Use it at your own risk.\par}
+}]]></description>
   </metadata>
 
   <version name="0.0.4" author="Andrew Dihtiaruk" time="2026-09-23T00:00:00Z">
