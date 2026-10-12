@@ -3,7 +3,7 @@
 *              FSR  Region Templates
 * Section      Main
 * Author:      Andrew Dihtaryk(FSR)
-* Version:     1.0.1
+* Version:     1.0.2
 -------------------------------------------------------------------------------------------               
 * DONATION:    http://ko-fi.com/pianohousestudio    ««««« Double-click the link to open it.
                http://www.paypal.com/paypalme/AndriiDrots Double-click the link to open it.
@@ -161,6 +161,7 @@ open_rename_group_modal = false
 
 new_group_buf        = "New Group"
 open_new_group_modal = false
+new_group_modal_title = "Add New Group"
 
 save_template_buf        = "New Template"
 open_save_template_modal = false
@@ -185,6 +186,7 @@ pending_delete_group = nil
 OLD_TEST_GITHUB_REPO = "https://github.com/forsemusic1996-cyber/region-templates-test"
 DEFAULT_GITHUB_REPO = "https://github.com/forsemusic1996-cyber/Region-Templates-Library"
 TEMPLATE_UPLOAD_REQUEST_URL = "https://www.dropbox.com/request/5z9j1sjdls22c9rc50ev"
+FEEDBACK_URL = "https://reaper-script-feedback.forsemusic1996.workers.dev/"
 github_repo       = r.GetExtState(EXT_SECTION, EXT_KEY_GITHUB_REPO)
 github_branch     = r.GetExtState(EXT_SECTION, EXT_KEY_GITHUB_BRANCH)
 github_folder     = r.GetExtState(EXT_SECTION, EXT_KEY_GITHUB_FOLDER)
@@ -222,6 +224,16 @@ function ShowToast(message, is_error)
     toast_message  = message
     toast_time     = r.time_precise()
     toast_is_error = is_error or false
+end
+
+function OpenExternalURL(url)
+    if r.CF_ShellExecute then
+        r.CF_ShellExecute(url)
+    elseif r.ExecProcess then
+        r.ExecProcess('cmd.exe /c start "" "' .. url .. '"', 0)
+    else
+        ShowToast("Could not open the link", true)
+    end
 end
 
 function FormatRemoteDate(value)
@@ -2178,6 +2190,11 @@ function RegionTemplates_MainLoop()
             if ctrl and r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Z()) then
                 r.Main_OnCommand(40029, 0)
             end
+            if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_F()) then
+                new_group_buf         = "New Folder"
+                new_group_modal_title = "Create Folder"
+                open_new_group_modal  = true
+            end
             if r.ImGui_IsKeyPressed(ctx, r.ImGui_Key_Tab(), false) then
                 show_folders_panel = not show_folders_panel
                 SaveLayoutSettings()
@@ -2310,6 +2327,7 @@ function RegionTemplates_MainLoop()
                 r.ImGui_TextDisabled(ctx, "Keyboard shortcuts")
                 DrawHelpShortcut("Tab", "Show or hide the groups panel")
                 DrawHelpShortcut("Escape", "Close the script completely")
+                DrawHelpShortcut("F", "Create a new folder")
                 DrawHelpShortcut("Up / Down", "Browse templates")
 
                 r.ImGui_Separator(ctx)
@@ -2329,11 +2347,17 @@ function RegionTemplates_MainLoop()
                         r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_Hand())
                     end
                     if r.ImGui_IsItemClicked(ctx) then
-                        if r.CF_ShellExecute then
-                            r.CF_ShellExecute("https://ko-fi.com/pianohousestudio")
-                        elseif r.ExecProcess then
-                            r.ExecProcess('cmd.exe /c start "" "https://ko-fi.com/pianohousestudio"', 0)
-                        end
+                        OpenExternalURL("https://ko-fi.com/pianohousestudio")
+                    end
+                end
+
+                r.ImGui_Text(ctx, "✦ Send Feedback")
+                if r.ImGui_IsItemHovered(ctx) then
+                    if r.ImGui_SetMouseCursor and r.ImGui_MouseCursor_Hand then
+                        r.ImGui_SetMouseCursor(ctx, r.ImGui_MouseCursor_Hand())
+                    end
+                    if r.ImGui_IsItemClicked(ctx) then
+                        OpenExternalURL(FEEDBACK_URL)
                     end
                 end
                 r.ImGui_EndMenu(ctx)
@@ -2453,8 +2477,9 @@ function RegionTemplates_MainLoop()
                 end
                 r.ImGui_Spacing(ctx)
                 if r.ImGui_Button(ctx, "+", 18, 18) then
-                    new_group_buf        = "New Group"
-                    open_new_group_modal = true
+                    new_group_buf         = "New Group"
+                    new_group_modal_title = "Add New Group"
+                    open_new_group_modal  = true
                 end
             end
             r.ImGui_EndChild(ctx)
@@ -2697,10 +2722,10 @@ function RegionTemplates_MainLoop()
         end
 
         if open_new_group_modal then
-            r.ImGui_OpenPopup(ctx, "Add New Group")
+            r.ImGui_OpenPopup(ctx, new_group_modal_title)
             open_new_group_modal = false
         end
-        if r.ImGui_BeginPopupModal(ctx, "Add New Group", true, modal_flags) then
+        if r.ImGui_BeginPopupModal(ctx, new_group_modal_title, true, modal_flags) then
             r.ImGui_SetNextItemWidth(ctx, 250)
             local changed, new_val = r.ImGui_InputText(ctx, "##new_group_input", new_group_buf, 256)
             if changed then new_group_buf = new_val end
