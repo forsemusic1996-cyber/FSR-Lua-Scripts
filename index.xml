@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <index version="1" name="FSR Scripts">
   <category name="Utilities">
+    <!-- ===== FSR FL Studio Paint Mode.lua ===== -->
+    <reapack name="FSR FL Studio Paint Mode.lua" type="script" desc="FSR FL Studio Paint Mode.lua">
+      <version name="1.0.0" author="Andrew Dihtiaruk" time="2026-10-19T15:09:03Z">
+        <source main="main" file="FSR FL Studio Paint Mode.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/refs/heads/main/FSR-Scripts/FSR%20FL%20Studio%20Paint%20Mode.lua</source>
+        <changelog><![CDATA[Initial release.]]></changelog>
+      </version>
+    </reapack>
+    <!-- --------------------------------------------------------- -->
     <!-- ===== FSR LoopX.lua ===== -->
     <reapack name="FSR LoopX.lua" type="script" desc="FSR LoopX.lua">
       <version name="1.0.3" author="Andrew Dihtiaruk" time="2026-09-15T00:00:00Z">
