@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <index version="1" name="FSR Scripts">
   <category name="Utilities">
+    <!-- ===== FSR Delay Effect.lua ===== -->
+    <reapack name="FSR Delay Effect.lua" type="script" desc="FSR Delay Effect.lua">
+      <version name="1.0.0" author="Andrew Dihtaryk" time="2026-10-23T10:10:17Z">
+        <source main="main" file="FSR Delay Effect.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/e7843c18987a9ec670eb3a2eb5ff9b82a810043f/FSR-Scripts/FSR%20Delay%20Effect.lua</source>
+        <changelog><![CDATA[Initial release.]]></changelog>
+      </version>
+    </reapack>
+    <!-- --------------------------------------------------------- -->
     <!-- ===== FSR FL Studio Paint Mode.lua ===== -->
     <reapack name="FSR FL Studio Paint Mode.lua" type="script" desc="FSR FL Studio Paint Mode.lua">
       <version name="1.0.0" author="Andrew Dihtiaruk" time="2026-10-19T15:09:03Z">
