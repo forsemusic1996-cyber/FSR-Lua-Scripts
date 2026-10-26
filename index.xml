@@ -221,7 +221,15 @@
       </version>
     </reapack>
     
-<!-- ===== ADD NEW SCRIPT ABOVE THIS LINE ===== -->
+    <!-- ===== FSR Tooltips.lua ===== -->
+    <reapack name="FSR Tooltips.lua" type="script" desc="FSR Tooltips.lua">
+      <version name="1.0.0" author="Andrew Dihtaryk" time="2026-10-26T11:56:00Z">
+        <source main="main" file="FSR Tooltips.lua">https://raw.githubusercontent.com/forsemusic1996-cyber/FSR-Lua-Scripts/ba7e73b8a9e41160b38dae98d667ac640a4012a1/FSR-Scripts/FSR%20Tooltips.lua</source>
+        <changelog><![CDATA[Initial release.]]></changelog>
+      </version>
+    </reapack>
+    <!-- --------------------------------------------------------- -->
+    <!-- ===== ADD NEW SCRIPT ABOVE THIS LINE ===== -->
   </category>
   <category name="MIDI Tools">
     <!-- ===== FSR MIDI Smart Focus.lua ===== -->
